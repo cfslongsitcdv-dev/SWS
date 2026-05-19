@@ -135,12 +135,10 @@
 #log-modal .mbody { background: #f8fafc !important; }
 #log-modal table th { background: #f0fdf4 !important; color: #166534 !important; border-bottom: 2px solid #bbf7d0 !important; text-transform: none !important; }
 #log-modal table th.lg-imp { background: #fce7f3 !important; color: #be185d !important; border-bottom: 2px solid #f9a8d4 !important; }
-#log-modal table td:not(.msr-td) { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
-#log-modal td.msr-td { background: #fff; color: #0f172a !important; }
-#log-modal td.msr-td input { color: #0f172a !important; background: #fff !important; caret-color: #0f172a !important; }
+#log-modal table td { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
 #log-modal td input, #log-modal td select { color: #0f172a !important; background: transparent !important; }
 #log-modal td input::placeholder { color: #94a3b8 !important; }
-#log-modal td input:focus { outline: 2px solid #16a34a !important; }
+#log-modal td input:focus { background: #f0fdf4 !important; outline: 2px solid #16a34a !important; }
 
 </style></head><body><div id="setup-modal" class="overlay"><div class="modal" style="width:460px"><div class="mhead"><span class="mtitle">Cấu hình Supabase</span></div><div class="mbody"><p style="font-size:13px;color:var(--txt2)">Vào <b>Supabase → Settings → API Keys → Legacy anon</b> để lấy thông tin.</p><div><label class="flbl">Project URL</label><input class="finp" id="cfg-url" placeholder="https://xxxx.supabase.co"></div><div><label class="flbl">Anon Public Key</label><input class="finp" id="cfg-key" placeholder="eyJ..."></div><div id="cfg-err" class="ferr"></div></div><div class="mfoot"><button class="btn btn-p" onclick="saveConfig()">Lưu & kết nối</button></div></div></div><div id="license-screen" class="fullscreen" style="display:none"><div class="card" style="width:420px"><div style="text-align:center;margin-bottom:20px"><div style="font-size:32px;margin-bottom:8px">🔐</div><div class="card-title" style="text-align:center">BÀN GIAO CHÌ</div><div class="card-sub" style="text-align:center">Nhập License Key để kích hoạt phần mềm</div></div><label class="flbl">License Key</label> <input class="finp" id="lic-key" placeholder="Nhập License Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown='"Enter"===event.key&&checkLicense()' style="text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono)" onfocus='this.value=""' onpaste="setTimeout(()=>this.value=this.value.trim().toUpperCase(),0)"><div class="ferr" id="lic-err"></div><button class="btn btn-p btn-full" onclick="checkLicense()">Kích hoạt</button><div style="margin-top:16px;padding:12px;background:var(--s2);border-radius:var(--r);font-size:12px;color:var(--txt3);text-align:center;line-height:1.6">Liên hệ quản trị viên để lấy License Key.<br>Key chỉ cần nhập một lần trên mỗi máy.</div></div></div><div id="login-screen" class="fullscreen" style="display:none"><div class="card"><div class="card-title">BÀN GIAO <span style="color:var(--acc)">CHÌ</span></div><div class="card-sub">Hệ thống quản lý bàn giao chì container</div><label class="flbl">Tên đăng nhập</label> <input class="finp" id="lu" placeholder="username" autocomplete="username"> <label class="flbl">Mật khẩu</label> <input class="finp" type="password" id="lp" placeholder="••••••" onkeydown='"Enter"===event.key&&doLogin()'><div class="ferr" id="lerr"></div><button class="btn btn-p btn-full" onclick="doLogin()">Đăng nhập</button></div></div><div id="app"><div class="topbar"><div class="brand">SWS</div><div class="topbar-r"><div class="ping-wrap" title="Realtime"><div class="ping-ring"></div><div class="ping-dot"></div></div><div class="upill"><div class="uav" id="uav">A</div><span id="udisplay">—</span> <span class="dept-badge" id="udept">—</span></div><button class="btn btn-g" style="padding:5px 11px;font-size:12px" onclick='openModal("changepw-modal")'>Đổi mật khẩu</button> <button class="btn btn-g" style="padding:5px 11px;font-size:12px" onclick="doLogout()">Đăng xuất</button></div></div><div style="display:flex;background:var(--s1);border-bottom:2px solid var(--border);padding:0 16px;gap:0">
     <button id="maintab-bangiao" onclick="switchMainTab('bangiao')" style="padding:10px 14px;border:none;border-bottom:3px solid var(--acc);cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:var(--acc);margin-bottom:-2px;white-space:nowrap">🔒 SealLog</button>
@@ -225,7 +223,7 @@ function buildLogisticsView(){
     <table style="width:100%;border-collapse:collapse;background:#fff !important;table-layout:fixed">
       <thead><tr style="background:#f0fdf4 !important">
         <th style="width:36px !important;padding:8px !important;background:#f0fdf4 !important;color:#94a3b8 !important;font-size:11px !important;border-bottom:2px solid #bbf7d0 !important">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th class="${imp?'lg-imp':''}" style="width:${lgColW(c)};${imp?'background:#fce7f3 !important;color:#9d174d !important;border-bottom:3px solid #f472b6 !important;font-weight:800 !important;font-size:12px !important;padding:8px 10px !important;':'background:#f0fdf4;color:#64748b;border-bottom:2px solid #bbf7d0;font-weight:700;font-size:11px;padding:8px 10px;'}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
+        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th class="${imp?'lg-imp':''}" style="width:${lgColW(c)}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
         <th style="width:40px;background:#f0fdf4"></th>
       </tr></thead>
       <tbody>
@@ -308,26 +306,26 @@ function msrHandlePaste(e){
 }
 async function msrSave(){
   const sheet=window._msrSheet,cfg=window._msrCfg,inputCols=window._msrCols,btn=document.getElementById('log-modal-ok');
-  btn.textContent='Đang lưu...';btn.disabled=true;
-  const rows=[];
+  btn.textContent='Đang lưu...';btn.disabled=true;let saved=0;
   for(let ri=0;ri<window._msrRowCount;ri++){
     const vals=inputCols.map((_,ci)=>{const el=document.querySelector(`[data-row="${ri}"][data-col="${ci}"]`);return el?el.value.trim():'';});
     if(vals.every(v=>!v))continue;
     const rowData=cfg.cols.map(col=>{if(cfg.readonly.includes(col))return'';const idx=inputCols.indexOf(col);return idx>=0?vals[idx]:'';});
-    rows.push(rowData);
+    try{const res=await gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)});if(res.ok)saved++;}catch(err){}
   }
-  if(rows.length>0){
-    rows.forEach(rowData=>gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)}).catch(()=>{}));
-  }
-  btn.disabled=false;btn.textContent='Lưu vào Google Sheets';
+  btn.disabled=false;
   document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);
   document.getElementById('log-modal').style.display='none';
-  delete _logisticsCache[sheet];
-  if(rows.length>0){
-    showNotif('n-ok',`✅ Đã gửi ${rows.length} dòng — bấm Tải lại để cập nhật`);
-  } else {
-    loadLogistics();
-  }
+  delete _logisticsCache[sheet];await loadLogistics();
+  if(saved>0)showNotif('n-ok',`✅ Đã lưu ${saved} dòng vào ${sheet}`);
+}
+async function loadLogistics(){
+  const el=document.getElementById('view-logistics');if(!el)return;
+  const sheets=getAccessibleSheets();if(!_logisticsSheet)_logisticsSheet=sheets[0];
+  if(_logisticsCache[_logisticsSheet]){_logisticsData=_logisticsCache[_logisticsSheet];el.innerHTML=buildLogisticsView();gasCall({action:'getSheet',sheet:_logisticsSheet}).then(r=>{if(r.ok){_logisticsCache[_logisticsSheet]=r.rows;_logisticsData=r.rows;el.innerHTML=buildLogisticsView();}});return;}
+  el.innerHTML=`<div style="text-align:center;padding:40px;color:#64748b">⏳ Đang tải...</div>`;
+  try{const res=await gasCall({action:'getSheet',sheet:_logisticsSheet});if(!res.ok)throw new Error(res.error);_logisticsData=res.rows;_logisticsCache[_logisticsSheet]=res.rows;el.innerHTML=buildLogisticsView();}
+  catch(e){el.innerHTML=`<div style="color:#dc2626;padding:20px">❌ ${e.message}</div>`;}
 }
 async function switchLogisticsSheet(name){_logisticsSheet=name;_logisticsData=[];await loadLogistics();}
 async function deleteLogisticsRow(rowIndex){if(!confirm('Xóa dòng này?'))return;try{const res=await gasCall({action:'deleteRow',sheet:_logisticsSheet,rowIndex});if(!res.ok)throw new Error(res.error);delete _logisticsCache[_logisticsSheet];await loadLogistics();}catch(e){alert('Lỗi: '+e.message);}}
@@ -348,7 +346,7 @@ function buildLogisticsView() {
 
   const statusBadge = (s) => {
     if (!s) return '<span style="color:var(--txt3);font-size:11px">—</span>';
-    if (s === 'DONE') return '<span style="background:#16a34a;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.04em">DONE</span>';
+    if (s === 'DONE') return '<span style="background:#16a34a;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700">DONE</span>';
     if (s.startsWith('ERR')) return '<span style="background:#3d1a1a;color:#f85149;padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
     return '<span style="background:var(--s3);color:var(--txt2);padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
   };
@@ -379,17 +377,17 @@ function buildLogisticsView() {
     <table>
       <thead><tr>
         <th style="width:36px">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="${imp?'background:#fce7f3 !important;color:#9d174d !important;border-bottom:3px solid #f472b6 !important;font-weight:800 !important;font-size:12px !important;':''}">${c}</th>`;}).join('')}
+        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="${imp?'background:#fce7f3;color:#9d174d;border-bottom:3px solid #f472b6;font-weight:800;font-size:12px;padding:8px 10px;':''}">${c}</th>`;}).join('')}
         <th>Xóa</th>
       </tr></thead>
       <tbody>
         ${rows.length===0 ? `<tr><td colspan="${cfg.cols.length+2}" style="text-align:center;padding:24px;color:var(--txt3)">Không có dữ liệu</td></tr>` :
           rows.map((row,i)=>`<tr>
-            <td style="color:#64748b;font-size:11px;font-weight:600">${i+1}</td>
+            <td style="color:var(--txt3);font-size:11px">${i+1}</td>
             ${cfg.cols.map((c,ci)=>{
               const val = row[ci]||'';
               if(c==='STATUS') return `<td>${statusBadge(val)}</td>`;
-              return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-weight:500;font-size:13px" title="${val}">${val}</td>`;
+              return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-weight:500;font-size:13px" title="${val}">${val}</td>`;
             }).join('')}
             <td><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 6px">✕</button></td>
           </tr>`).join('')
