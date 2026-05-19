@@ -187,7 +187,7 @@ function lgStatusBadge(s){
 }
 function buildLogisticsView(){
   const sheets=getAccessibleSheets(),sheet=_logisticsSheet||sheets[0],cfg=LOGISTICS_SHEETS[sheet],rows=_logisticsData.slice(1);
-  return`<div style="display:flex;flex-direction:column;gap:14px;background:#f0fdf4;padding:16px;border-radius:10px">
+  return`<div style="all:initial;display:block;font-family:inherit"><div style="display:flex;flex-direction:column;gap:14px;background:#f0fdf4;padding:16px;border-radius:10px;color:#0f172a;font-size:14px">
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
     ${sheets.map(s=>`<button onclick="switchLogisticsSheet('${s}')" style="padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:${s===sheet?'#16a34a':'#dcfce7'};color:${s===sheet?'#fff':'#166534'}">${s}</button>`).join('')}
     <span style="margin-left:auto;font-size:11px;color:#94a3b8"><span style="display:inline-block;width:10px;height:10px;background:#fce7f3;border:1px solid #f9a8d4;border-radius:2px;margin-right:4px"></span>Quan trọng</span>
@@ -199,8 +199,8 @@ function buildLogisticsView(){
   </div>
   <div style="border-radius:8px;border:1px solid #bbf7d0;overflow:hidden;background:#fff">
     <table style="width:100%;border-collapse:collapse;background:#fff !important;table-layout:fixed">
-      <thead><tr>
-        <th style="width:36px;padding:8px;background:#f0fdf4;color:#94a3b8;font-size:11px">#</th>
+      <thead><tr style="background:#f0fdf4 !important">
+        <th style="width:36px !important;padding:8px !important;background:#f0fdf4 !important;color:#94a3b8 !important;font-size:11px !important;border-bottom:2px solid #bbf7d0 !important">#</th>
         ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="width:${lgColW(c)};padding:8px 10px;font-size:11px;font-weight:700;text-align:left;background:${imp?'#fce7f3':'#f0fdf4'} !important;color:${imp?'#be185d':'#64748b'} !important;border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'} !important">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
         <th style="width:40px;background:#f0fdf4"></th>
       </tr></thead>
@@ -216,7 +216,7 @@ function buildLogisticsView(){
       </tbody>
     </table>
   </div>
-</div>`;
+</div></div>`;
 }
 
 function openMiniSheet(sheet){
