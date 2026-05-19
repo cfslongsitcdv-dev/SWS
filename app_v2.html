@@ -223,52 +223,6 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
   .stat{padding:10px 12px}
 }
 
-/* Logistics theme */
-/* Override dark CSS variables for logistics view */
-#view-logistics {
-  --s1: #f0fdf4;
-  --s2: #f0fdf4;
-  --s3: #dcfce7;
-  --border: #bbf7d0;
-  --txt: #0f172a;
-  --txt2: #334155;
-  --txt3: #64748b;
-  background: #f0fdf4;
-  border-radius: 10px;
-  padding: 0;
-}
-
-#view-logistics { background: #f0fdf4; border-radius: 10px; padding: 0; }
-#view-logistics table { background: #fff !important; color: #0f172a !important; }
-#view-logistics table th { 
-  background: #f0fdf4 !important; 
-  color: #64748b !important; 
-  border-bottom: 2px solid #bbf7d0 !important;
-  text-transform: none !important;
-  letter-spacing: normal !important;
-  font-size: 11px !important;
-  padding: 8px 10px !important;
-}
-#view-logistics table td { 
-  border-bottom: 1px solid #f0fdf4 !important; 
-  color: #64748b !important;
-  padding: 9px 10px !important;
-}
-#view-logistics table tr:hover td { background: #dcfce7 !important; }
-#view-logistics table tr:hover th { background: #dcfce7 !important; }
-#view-logistics th.lg-imp { background: #fce7f3 !important; color: #9d174d !important; border-bottom: 3px solid #f472b6 !important; font-weight: 800 !important; font-size: 12px !important; }
-#view-logistics td.lg-imp { color: #9d174d !important; font-weight: 700 !important; }
-#log-modal .modal { background: #fff !important; color: #0f172a !important; }
-#log-modal .mhead { background: #f0fdf4 !important; border-bottom: 1px solid #bbf7d0 !important; }
-#log-modal .mtitle { color: #166534 !important; font-weight: 700 !important; }
-#log-modal .mfoot { background: #f8fafc !important; border-top: 1px solid #e2e8f0 !important; }
-#log-modal .mbody { background: #f8fafc !important; }
-#log-modal table th { background: #f0fdf4 !important; color: #166534 !important; border-bottom: 2px solid #bbf7d0 !important; text-transform: none !important; }
-#log-modal table th.lg-imp { background: #fce7f3 !important; color: #be185d !important; border-bottom: 2px solid #f9a8d4 !important; }
-#log-modal table td { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
-#log-modal td input, #log-modal td select { color: #0f172a !important; background: transparent !important; }
-#log-modal td input::placeholder { color: #94a3b8 !important; }
-#log-modal td input:focus { background: #f0fdf4 !important; outline: 2px solid #16a34a !important; }
 
 </style>
 </head>
@@ -1638,7 +1592,7 @@ function lgStatusBadge(s){
 }
 function buildLogisticsView(){
   const sheets=getAccessibleSheets(),sheet=_logisticsSheet||sheets[0],cfg=LOGISTICS_SHEETS[sheet],rows=_logisticsData.slice(1);
-  return`<div style="all:initial;display:block;font-family:inherit"><div style="display:flex;flex-direction:column;gap:14px;background:#f0fdf4;padding:16px;border-radius:10px;color:#0f172a;font-size:14px">
+  return`<div style="display:flex;flex-direction:column;gap:14px;background:#f0fdf4;padding:16px;border-radius:10px;color:#0f172a;font-size:14px">
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
     ${sheets.map(s=>`<button onclick="switchLogisticsSheet('${s}')" style="padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:${s===sheet?'#14532d':'#dcfce7'};color:${s===sheet?'#fff':'#166534'}">${s}</button>`).join('')}
     <span style="margin-left:auto;font-size:11px;color:#94a3b8"><span style="display:inline-block;width:10px;height:10px;background:#fce7f3;border:1px solid #f9a8d4;border-radius:2px;margin-right:4px"></span>Quan trọng</span>
@@ -1649,7 +1603,7 @@ function buildLogisticsView(){
     <span style="margin-left:auto;font-size:12px;color:#94a3b8;align-self:center">${rows.length} dòng</span>
   </div>
   <div style="border-radius:8px;border:1px solid #bbf7d0;overflow:hidden;background:#fff">
-    <table style="width:100%;border-collapse:collapse;background:#fff !important;table-layout:fixed">
+    <table style="width:100%;border-collapse:collapse;background:#fff;table-layout:fixed">
       <thead><tr style="background:#f0fdf4 !important">
         <th style="width:36px !important;padding:8px !important;background:#f0fdf4 !important;color:#94a3b8 !important;font-size:11px !important;border-bottom:2px solid #bbf7d0 !important">#</th>
         ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th class="${imp?'lg-imp':''}" style="width:${lgColW(c)}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
@@ -1667,7 +1621,7 @@ function buildLogisticsView(){
       </tbody>
     </table>
   </div>
-</div></div>`;
+</div>`;
 }
 
 function openMiniSheet(sheet){
