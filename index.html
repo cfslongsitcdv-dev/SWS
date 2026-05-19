@@ -244,9 +244,7 @@ function buildLogisticsView(){
 function openMiniSheet(sheet){
   const cfg=LOGISTICS_SHEETS[sheet],inputCols=cfg.cols.filter(c=>!cfg.readonly.includes(c));
   _msrSelected=new Set();_msrSelecting=false;
-  const typeOpts=['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
   const buildRows=(s,n)=>Array.from({length:n},(_,ri)=>{const r=s+ri;return`<tr id="msr-row-${r}">${inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';
-    if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${r}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;
     return`<td class="msr-td" data-row="${r}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${r}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrCellKeydown(event,${r},${ci},${inputCols.length})" onpaste="msrHandlePaste(event)"></td>`;}).join('')}</tr>`;}).join('');
   document.getElementById('log-modal-title').textContent='Thêm dòng — '+sheet;
   document.getElementById('log-modal-body').innerHTML=`<div style="display:flex;flex-direction:column;gap:10px;background:#f8fafc;padding:4px">
@@ -302,8 +300,7 @@ function msrKeyNav(e,ri,ci,tot){
 }
 function msrAddRows(){
   const cfg=window._msrCfg,inputCols=window._msrCols,start=window._msrRowCount,tbody=document.getElementById('msr-tbody');
-  const typeOpts=['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
-  for(let ri=start;ri<start+5;ri++){const tr=document.createElement('tr');tr.id=`msr-row-${ri}`;tr.innerHTML=inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${ri}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;return`<td class="msr-td" data-row="${ri}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrCellKeydown(event,${ri},${ci},${inputCols.length})" onpaste="msrHandlePaste(event)"></td>`;}).join('');tbody.appendChild(tr);}
+  for(let ri=start;ri<start+5;ri++){const tr=document.createElement('tr');tr.id=`msr-row-${ri}`;tr.innerHTML=inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';return`<td class="msr-td" data-row="${ri}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrCellKeydown(event,${ri},${ci},${inputCols.length})" onpaste="msrHandlePaste(event)"></td>`;}).join('');tbody.appendChild(tr);}
   window._msrRowCount=start+5;
 }
 function msrHandlePaste(e){
