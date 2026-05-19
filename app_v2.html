@@ -225,17 +225,17 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
 
 /* Logistics light theme */
 #view-logistics {
-  --log-bg: #f8fafc;
-  --log-s1: #ffffff;
-  --log-s2: #f1f5f9;
-  --log-s3: #e2e8f0;
-  --log-border: #cbd5e1;
-  --log-txt: #0f172a;
-  --log-txt2: #334155;
+  --log-bg: #0c0f18;
+  --log-s1: #1a1f2e;
+  --log-s2: rgba(255,255,255,0.04);
+  --log-s3: rgba(255,255,255,0.06);
+  --log-border: rgba(255,255,255,0.08);
+  --log-txt: #e2e8f0;
+  --log-txt2: #94a3b8;
   --log-txt3: #64748b;
-  --log-acc: #2563eb;
-  --log-imp: #be185d;
-  --log-imp-bg: #fdf2f8;
+  --log-acc: #4f8ef7;
+  --log-imp: #f9a8d4;
+  --log-imp-bg: rgba(219,39,119,0.15);
   background: var(--log-bg);
   color: var(--log-txt);
   padding: 18px;
@@ -244,9 +244,9 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
 #view-logistics .twrap { background: var(--log-s1); }
 #view-logistics table { background: var(--log-s1); color: var(--log-txt); }
 #view-logistics thead tr { background: var(--log-s2) !important; }
-#view-logistics th { color: var(--log-txt2) !important; border-bottom: 2px solid var(--log-border) !important; }
+#view-logistics th { color: var(--log-txt2) !important; border-bottom: 1px solid var(--log-border) !important; }
 #view-logistics td { border-bottom: 1px solid var(--log-s3); color: var(--log-txt); }
-#view-logistics tr:hover td { background: var(--log-s2) !important; }
+#view-logistics tr:hover td { background: rgba(255,255,255,0.05) !important; }
 #log-modal table { background: #fff; }
 #log-modal thead tr { background: #f1f5f9 !important; }
 #log-modal th { color: #334155 !important; border-bottom: 2px solid #cbd5e1 !important; }
@@ -1716,7 +1716,7 @@ function buildLogisticsView() {
         ${cfg.cols.map(c=>{
           const imp = cfg.important.includes(c);
           const ro  = cfg.readonly.includes(c);
-          return `<th style="width:${colWidth(c)};background:${imp?'#fdf2f8':'#f1f5f9'};color:${imp?'#be185d':'#334155'}">${c}${ro?' 🔒':''}</th>`;
+          return `<th style="width:${colWidth(c)};padding:9px 12px;font-size:11px;font-weight:700;text-align:left;border-bottom:${imp?'2px solid #db2777':'1px solid rgba(255,255,255,0.06)'};color:${imp?'#f9a8d4':'#94a3b8'}">${c}${ro?' 🔒':''}</th>`;
         }).join('')}
         <th style="width:44px"></th>
       </tr></thead>
