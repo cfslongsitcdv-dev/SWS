@@ -266,9 +266,9 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
 #log-modal table th { background: #f0fdf4 !important; color: #166534 !important; border-bottom: 2px solid #bbf7d0 !important; text-transform: none !important; }
 #log-modal table th.lg-imp { background: #fce7f3 !important; color: #be185d !important; border-bottom: 2px solid #f9a8d4 !important; }
 #log-modal table td { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
-#log-modal td input, #log-modal td select { color: #0f172a !important; background: #fff !important; }
+#log-modal td input, #log-modal td select { color: #0f172a !important; background: transparent !important; }
 #log-modal td input::placeholder { color: #94a3b8 !important; }
-#log-modal td input:focus { background: #fff !important; outline: 2px solid #16a34a !important; }
+#log-modal td input:focus { background: #f0fdf4 !important; outline: 2px solid #16a34a !important; }
 
 </style>
 </head>
@@ -1731,23 +1731,22 @@ function msrHandlePaste(e){
   e.preventDefault();const text=e.clipboardData.getData('text/plain'),lines=text.split('\n').filter(l=>l.trim());
   const el=document.activeElement,sr=+(el.dataset&&el.dataset.row)||0,sc=+(el.dataset&&el.dataset.col)||0;
   while(window._msrRowCount<sr+lines.length)msrAddRows();
-  lines.forEach((line,li)=>line.split('\t').forEach((val,ci)=>{const idx=sc+ci;if(idx>=window._msrCols.length)return;const inp=document.querySelector(`[data-row="${sr+li}"][data-col="${idx}"]`);if(inp){inp.value=val.trim();inp.dispatchEvent(new Event('input'));}}));
+  lines.forEach((line,li)=>line.split('\t').forEach((val,ci)=>{const idx=sc+ci;if(idx>=window._msrCols.length)return;const inp=document.querySelector(`[data-row="${sr+li}"][data-col="${idx}"]`);if(inp)inp.value=val.trim();}));
 }
-function msrSave(){
-  const sheet=window._msrSheet,cfg=window._msrCfg,inputCols=window._msrCols;
-  const rows=[];
+async function msrSave(){
+  const sheet=window._msrSheet,cfg=window._msrCfg,inputCols=window._msrCols,btn=document.getElementById('log-modal-ok');
+  btn.textContent='Đang lưu...';btn.disabled=true;let saved=0;
   for(let ri=0;ri<window._msrRowCount;ri++){
     const vals=inputCols.map((_,ci)=>{const el=document.querySelector(`[data-row="${ri}"][data-col="${ci}"]`);return el?el.value.trim():'';});
     if(vals.every(v=>!v))continue;
     const rowData=cfg.cols.map(col=>{if(cfg.readonly.includes(col))return'';const idx=inputCols.indexOf(col);return idx>=0?vals[idx]:'';});
-    rows.push(rowData);
+    try{const res=await gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)});if(res.ok)saved++;}catch(err){}
   }
-  rows.forEach(rowData=>gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)}).catch(()=>{}));
+  btn.disabled=false;
   document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);
   document.getElementById('log-modal').style.display='none';
-  delete _logisticsCache[sheet];
-  if(rows.length>0)showNotif('n-ok',`✅ Đã gửi ${rows.length} dòng — bấm Tải lại để xem`);
-  loadLogistics();
+  delete _logisticsCache[sheet];await loadLogistics();
+  if(saved>0)showNotif('n-ok',`✅ Đã lưu ${saved} dòng vào ${sheet}`);
 }
 async function loadLogistics(){
   const el=document.getElementById('view-logistics');if(!el)return;
@@ -1776,7 +1775,7 @@ function buildLogisticsView() {
 
   const statusBadge = (s) => {
     if (!s) return '<span style="color:var(--txt3);font-size:11px">—</span>';
-    if (s === 'DONE') return '<span style="background:#16a34a;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700">DONE</span>';
+    if (s === 'DONE') return '<span style="background:#1a4731;color:#3fb950;padding:2px 8px;border-radius:4px;font-size:11px">DONE</span>';
     if (s.startsWith('ERR')) return '<span style="background:#3d1a1a;color:#f85149;padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
     return '<span style="background:var(--s3);color:var(--txt2);padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
   };
@@ -1807,7 +1806,7 @@ function buildLogisticsView() {
     <table>
       <thead><tr>
         <th style="width:36px">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="${imp?'background:#fce7f3;color:#9d174d;border-bottom:3px solid #f472b6;font-weight:800;font-size:12px;padding:8px 10px;':''}">${c}</th>`;}).join('')}
+        ${cfg.cols.map(c=>`<th>${c}</th>`).join('')}
         <th>Xóa</th>
       </tr></thead>
       <tbody>
@@ -1817,7 +1816,7 @@ function buildLogisticsView() {
             ${cfg.cols.map((c,ci)=>{
               const val = row[ci]||'';
               if(c==='STATUS') return `<td>${statusBadge(val)}</td>`;
-              return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-weight:500;font-size:13px" title="${val}">${val}</td>`;
+              return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${val}">${val}</td>`;
             }).join('')}
             <td><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 6px">✕</button></td>
           </tr>`).join('')
