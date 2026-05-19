@@ -223,7 +223,7 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
   .stat{padding:10px 12px}
 }
 
-/* Logistics theme */
+/* Logistics light theme */
 #view-logistics {
   --log-bg: #f8fafc;
   --log-s1: #ffffff;
@@ -1608,154 +1608,389 @@ if('serviceWorker' in navigator){
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzjIoyAAdOg7cOrE0JFsRMiwUOQp54py9lC6h1_uCLJPF5w8hYZk1NWrP2ItkHmTxC_3w/exec';
 
 const LOGISTICS_SHEETS = {
-  'KÉO VỎ':{'cols':['BOOKING NO.','CNTR','SEAL','SEAL CUS','TYPE','EMPTY PICKUP','P.O.L','STATUS'],'important':['BOOKING NO.','TYPE','EMPTY PICKUP','STATUS'],'readonly':['STATUS'],'dept':['BPTT','admin']},
-  'HẠ HÀNG':{'cols':['BOOKING NO.','CNTR','SEAL','SEAL CUS','TYPE','EMPTY PICKUP','P.O.L','STATUS'],'important':['CNTR','TYPE','P.O.L','STATUS'],'readonly':['STATUS'],'dept':['BPTT','admin']},
-  'CHUYỂN BÃI':{'cols':['BOOKING NO.','CNTR','SEAL','SEAL CUS','TYPE','EMPTY PICKUP','P.O.L','DEPOT1','DEPOT2','STATUS'],'important':['CNTR','TYPE','DEPOT1','DEPOT2','STATUS'],'readonly':['STATUS'],'dept':['BPTT','admin']},
-  'LẤY VỎ KHO':{'cols':['BOOKING NO.','CNTR','SEAL','SEAL CUS','TYPE','EMPTY PICKUP','P.O.L','STATUS'],'important':['CNTR','TYPE','STATUS'],'readonly':['STATUS'],'dept':['BPHT','admin']},
-  'TUYẾN ĐƯỜNG':{'cols':['LOẠI','TÊN GỌI','TUYEN_ID'],'important':[],'readonly':[],'dept':['admin']},
+  'KÉO VỎ': {
+    cols: ['BOOKING NO.','CNTR','SEAL','SEAL CUS','TYPE','EMPTY PICKUP','P.O.L','STATUS'],
+    important: ['BOOKING NO.','TYPE','EMPTY PICKUP','STATUS'],
+    readonly: ['STATUS'],
+    dept: ['BPTT','admin']
+  },
+  'HẠ HÀNG': {
+    cols: ['BOOKING NO.','CNTR','SEAL','SEAL CUS','TYPE','EMPTY PICKUP','P.O.L','STATUS'],
+    important: ['CNTR','TYPE','P.O.L','STATUS'],
+    readonly: ['STATUS'],
+    dept: ['BPTT','admin']
+  },
+  'CHUYỂN BÃI': {
+    cols: ['BOOKING NO.','CNTR','SEAL','SEAL CUS','TYPE','EMPTY PICKUP','P.O.L','DEPOT1','DEPOT2','STATUS'],
+    important: ['CNTR','TYPE','DEPOT1','DEPOT2','STATUS'],
+    readonly: ['STATUS'],
+    dept: ['BPTT','admin']
+  },
+  'LẤY VỎ KHO': {
+    cols: ['BOOKING NO.','CNTR','SEAL','SEAL CUS','TYPE','EMPTY PICKUP','P.O.L','STATUS'],
+    important: ['CNTR','TYPE','STATUS'],
+    readonly: ['STATUS'],
+    dept: ['BPHT','admin']
+  },
+  'TUYẾN ĐƯỜNG': {
+    cols: ['LOẠI','TÊN GỌI','TUYEN_ID'],
+    important: [],
+    readonly: [],
+    dept: ['admin']
+  },
 };
-let _logisticsSheet=null,_logisticsData=[],_logisticsCache={};
-let _msrSelected=new Set(),_msrSelecting=false,_msrSelStart=null;
 
-async function gasCall(p){
-  const url=GAS_URL+'?'+Object.entries(p).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  return (await fetch(url)).json();
+let _logisticsSheet = null;
+let _logisticsData  = [];
+let _logisticsCache = {};
+let _logisticsEditing = false; // track if mini-sheet is open
+
+async function gasCall(params) {
+  const url = GAS_URL + '?' + Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  const res = await fetch(url);
+  return res.json();
 }
-function getAccessibleSheets(){
-  return Object.entries(LOGISTICS_SHEETS).filter(([,c])=>c.dept.includes(CU.role)||c.dept.includes(CU.dept)).map(([n])=>n);
+
+function getAccessibleSheets() {
+  return Object.entries(LOGISTICS_SHEETS)
+    .filter(([,cfg]) => cfg.dept.includes(CU.role) || cfg.dept.includes(CU.dept))
+    .map(([name]) => name);
 }
-function lgColW(col){
-  return {'BOOKING NO.':'130px','CNTR':'110px','SEAL':'100px','SEAL CUS':'100px','TYPE':'70px','EMPTY PICKUP':'120px','P.O.L':'110px','DEPOT1':'70px','DEPOT2':'70px','STATUS':'80px'}[col]||'100px';
+
+// ── STATUS BADGE ──
+function statusBadge(s) {
+  if (!s) return '<span style="color:var(--txt3);font-size:11px">—</span>';
+  if (s === 'DONE') return '<span style="background:#1a4731;color:#3fb950;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">DONE</span>';
+  if (s && s.startsWith('ERR')) return '<span style="background:#3d1a1a;color:#f85149;padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
+  return '<span style="background:var(--s3);color:var(--txt2);padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
 }
-function lgStatusBadge(s){
-  if(!s)return`<span style="color:#94a3b8;font-size:11px">—</span>`;
-  if(s==='DONE')return`<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">DONE</span>`;
-  if(s&&s.startsWith('ERR'))return`<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px">${s}</span>`;
-  return`<span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:4px;font-size:11px">${s}</span>`;
-}
-function buildLogisticsView(){
-  const sheets=getAccessibleSheets(),sheet=_logisticsSheet||sheets[0],cfg=LOGISTICS_SHEETS[sheet],rows=_logisticsData.slice(1);
-  return`<div style="display:flex;flex-direction:column;gap:14px;background:#f0fdf4;padding:16px;border-radius:10px">
-  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-    ${sheets.map(s=>`<button onclick="switchLogisticsSheet('${s}')" style="padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:${s===sheet?'#16a34a':'#dcfce7'};color:${s===sheet?'#fff':'#166534'}">${s}</button>`).join('')}
-    <span style="margin-left:auto;font-size:11px;color:#94a3b8"><span style="display:inline-block;width:10px;height:10px;background:#fce7f3;border:1px solid #f9a8d4;border-radius:2px;margin-right:4px"></span>Quan trọng</span>
+
+// ── MAIN VIEW ──
+function buildLogisticsView() {
+  const sheets = getAccessibleSheets();
+  const sheet = _logisticsSheet || sheets[0];
+  const cfg = LOGISTICS_SHEETS[sheet];
+  const rows = _logisticsData.slice(1);
+
+  // Column widths
+  const colWidth = (col) => {
+    if (col === 'BOOKING NO.') return '140px';
+    if (col === 'CNTR') return '110px';
+    if (['SEAL','SEAL CUS'].includes(col)) return '110px';
+    if (col === 'TYPE') return '70px';
+    if (['EMPTY PICKUP','P.O.L'].includes(col)) return '120px';
+    if (['DEPOT1','DEPOT2'].includes(col)) return '70px';
+    if (col === 'STATUS') return '80px';
+    return '100px';
+  };
+
+  return `
+<div style="display:flex;flex-direction:column;gap:14px">
+  <!-- Sub tabs -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;background:var(--s2);padding:10px 12px;border-radius:var(--r);border:1px solid var(--border)">
+    ${sheets.map(s=>`
+      <button onclick="switchLogisticsSheet('${s}')"
+        style="padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;
+        background:${s===sheet?'var(--acc)':'var(--s3)'};color:${s===sheet?'#fff':'var(--txt2)'}">
+        ${s}
+      </button>`).join('')}
+    <!-- Legend -->
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--txt3)">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#4a1e2e;border-radius:2px;margin-right:4px"></span>Quan trọng</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--s3);border-radius:2px;margin-right:4px"></span>Thường</span>
+    </div>
   </div>
-  <div style="display:flex;gap:8px">
-    <button class="btn btn-p" onclick="openMiniSheet('${sheet}')" style="font-size:13px;background:#16a34a;border-color:#16a34a">+ Thêm dòng</button>
-    <button onclick="loadLogistics()" style="padding:7px 14px;border-radius:6px;border:1px solid #bbf7d0;background:#fff;color:#166534;font-size:13px;cursor:pointer">↻ Tải lại</button>
-    <span style="margin-left:auto;font-size:12px;color:#94a3b8;align-self:center">${rows.length} dòng</span>
+
+  <!-- Toolbar -->
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-p" onclick="openMiniSheet('${sheet}')" style="font-size:13px">+ Thêm dòng</button>
+    <button class="btn btn-g" onclick="loadLogistics()" style="font-size:13px">↻ Tải lại</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--txt3)">${rows.length} dòng</span>
   </div>
-  <div style="border-radius:8px;border:1px solid #bbf7d0;overflow:hidden">
-    <table style="width:100%;border-collapse:collapse;background:#fff;table-layout:fixed">
+
+  <!-- Table -->
+  <div class="twrap" style="border-radius:var(--r);border:1px solid var(--border);overflow:hidden">
+    <table style="table-layout:fixed">
       <thead><tr>
-        <th style="width:36px;padding:8px;background:#f0fdf4;color:#94a3b8;font-size:11px">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="width:${lgColW(c)};padding:8px 10px;font-size:11px;font-weight:700;text-align:left;background:${imp?'#fce7f3':'#f0fdf4'};color:${imp?'#be185d':'#166534'};border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
-        <th style="width:40px;background:#f0fdf4"></th>
+        <th style="width:36px">#</th>
+        ${cfg.cols.map(c=>{
+          const imp = cfg.important.includes(c);
+          const ro  = cfg.readonly.includes(c);
+          return `<th style="width:${colWidth(c)};background:${imp?'#fdf2f8':'#f1f5f9'};color:${imp?'#be185d':'#334155'}">${c}${ro?' 🔒':''}</th>`;
+        }).join('')}
+        <th style="width:44px"></th>
       </tr></thead>
       <tbody>
-        ${rows.length===0?`<tr><td colspan="${cfg.cols.length+2}" style="text-align:center;padding:28px;color:#94a3b8">Không có dữ liệu</td></tr>`:
-          rows.map((row,i)=>`<tr style="border-bottom:1px solid #f0fdf4;background:${i%2===0?'#fff':'#f0fdf4'}" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='${i%2===0?'#fff':'#f0fdf4'}'">
-            <td style="text-align:center;font-size:11px;color:#94a3b8;padding:8px 4px">${i+1}</td>
-            ${cfg.cols.map((c,ci)=>{const val=row[ci]||'',imp=cfg.important.includes(c);
-              if(c==='STATUS')return`<td style="padding:8px 10px;text-align:center">${lgStatusBadge(val)}</td>`;
-              return`<td style="padding:8px 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${imp?'#15803d':'#64748b'};font-weight:${imp?600:400}" title="${val}">${val}</td>`;}).join('')}
-            <td style="text-align:center"><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:13px;padding:2px 6px;opacity:.5;border-radius:4px" onmouseover="this.style.opacity=1;this.style.background='#fee2e2'" onmouseout="this.style.opacity=.5;this.style.background='none'">✕</button></td>
-          </tr>`).join('')}
+        ${rows.length===0
+          ? `<tr><td colspan="${cfg.cols.length+2}" style="text-align:center;padding:24px;color:var(--txt3)">Không có dữ liệu — nhấn "+ Thêm dòng"</td></tr>`
+          : rows.map((row,i)=>`<tr style="transition:background .1s" onmouseover="this.style.background='var(--s3)'" onmouseout="this.style.background=''">
+              <td style="color:var(--txt3);font-size:11px;text-align:center">${i+1}</td>
+              ${cfg.cols.map((c,ci)=>{
+                const val = row[ci]||'';
+                const imp = cfg.important.includes(c);
+                if (c === 'STATUS') return `<td style="text-align:center">${statusBadge(val)}</td>`;
+                return `<td style="max-width:${colWidth(c)};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${imp?'color:#fce7f3;font-weight:500':''}" title="${val}">${val}</td>`;
+              }).join('')}
+              <td style="text-align:center"><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 6px;opacity:.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">✕</button></td>
+            </tr>`).join('')
+        }
       </tbody>
     </table>
   </div>
 </div>`;
 }
 
-function openMiniSheet(sheet){
-  const cfg=LOGISTICS_SHEETS[sheet],inputCols=cfg.cols.filter(c=>!cfg.readonly.includes(c));
-  _msrSelected=new Set();_msrSelecting=false;
-  const typeOpts=['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
-  const buildRows=(s,n)=>Array.from({length:n},(_,ri)=>{const r=s+ri;return`<tr id="msr-row-${r}">${inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';
-    if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${r}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;
-    return`<td class="msr-td" data-row="${r}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${r}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrKeyNav(event,${r},${ci},${inputCols.length})"></td>`;}).join('')}</tr>`;}).join('');
-  document.getElementById('log-modal-title').textContent='Thêm dòng — '+sheet;
-  document.getElementById('log-modal-body').innerHTML=`<div style="display:flex;flex-direction:column;gap:10px;background:#f8fafc;padding:4px">
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px;font-size:12px;color:#166534">
-      💡 <b>Paste từ Google Sheets:</b> Click ô đầu → Ctrl+V &nbsp;|&nbsp; <b>Xóa nhiều ô:</b> Kéo chọn → Delete<br>
-      <span style="color:#64748b;font-size:11px">Thứ tự: ${inputCols.join(' → ')}</span>
-    </div>
-    <div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff">
-      <table id="mini-sheet-table" style="border-collapse:collapse;min-width:100%;table-layout:fixed;user-select:none">
-        <thead><tr style="background:#f0fdf4">${inputCols.map(col=>{const imp=cfg.important.includes(col);return`<th style="padding:7px 8px;font-size:11px;font-weight:700;text-align:left;border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'};border-right:1px solid #e2e8f0;background:${imp?'#fce7f3':'#f0fdf4'};color:${imp?'#be185d':'#166534'};width:${lgColW(col)};white-space:nowrap">${col}</th>`;}).join('')}</tr></thead>
-        <tbody id="msr-tbody">${buildRows(0,6)}</tbody>
-      </table>
-    </div>
-    <button onclick="msrAddRows()" style="background:#fff;border:1px dashed #bbf7d0;border-radius:6px;color:#16a34a;padding:7px;font-size:12px;cursor:pointer">+ Thêm 5 dòng</button>
-  </div>`;
-  window._msrSheet=sheet;window._msrCols=inputCols;window._msrCfg=cfg;window._msrRowCount=6;
-  document.getElementById('log-modal-ok').textContent='Lưu vào Google Sheets';
-  document.getElementById('log-modal-ok').onclick=msrSave;
-  setTimeout(()=>{
-    const tbl=document.getElementById('mini-sheet-table');
-    tbl.addEventListener('paste',msrHandlePaste);
-    tbl.addEventListener('mousedown',msrMouseDown);
-    tbl.addEventListener('mouseover',msrMouseOver);
-    document.addEventListener('mouseup',msrMouseUp);
-    document.addEventListener('keydown',msrGlobalKeydown);
-    const first=document.querySelector('.msr-cell');if(first)first.focus();
-  },100);
-  document.getElementById('log-modal').style.display='flex';
+// ── MINI SPREADSHEET ──
+function openMiniSheet(sheet) {
+  const cfg = LOGISTICS_SHEETS[sheet];
+  const inputCols = cfg.cols.filter(c => !cfg.readonly.includes(c));
+
+  const colWidth = (col) => {
+    if (col === 'BOOKING NO.') return '130px';
+    if (['CNTR','SEAL','SEAL CUS'].includes(col)) return '110px';
+    if (col === 'TYPE') return '80px';
+    if (['EMPTY PICKUP','P.O.L'].includes(col)) return '110px';
+    if (['DEPOT1','DEPOT2'].includes(col)) return '70px';
+    return '100px';
+  };
+
+  const typeOpts = ['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+
+  // Build 5 empty rows
+  const buildRows = (n=5) => Array.from({length:n}, (_,ri)=>`
+    <tr id="msr-row-${ri}">
+      ${inputCols.map((col,ci)=>{
+        const imp = cfg.important.includes(col);
+        const bg  = imp ? 'background:#fff0f8' : 'background:#fff';
+        if (col === 'TYPE') return `<td style="${bg}"><select class="msr-cell" data-row="${ri}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:var(--txt);font-size:12px;padding:4px;outline:none">${typeOpts}</select></td>`;
+        return `<td style="${bg}"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:var(--txt);font-size:12px;padding:4px 6px;outline:none" placeholder="${col}" onkeydown="msrKeyNav(event,${ri},${ci},${inputCols.length})"></td>`;
+      }).join('')}
+    </tr>`).join('');
+
+  document.getElementById('log-modal-title').textContent = 'Thêm dòng — ' + sheet;
+  document.getElementById('log-modal-body').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <!-- Instructions -->
+      <div style="background:var(--s3);border-radius:6px;padding:10px 12px;font-size:12px;color:var(--txt2)">
+        💡 <b>Paste từ Google Sheets:</b> Click vào ô đầu tiên rồi Ctrl+V để paste nhiều dòng cùng lúc.<br>
+        <span style="color:var(--txt3);font-size:11px">Thứ tự cột: ${inputCols.join(' → ')}</span>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;gap:12px;font-size:11px;color:var(--txt3)">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#2a0e1a;border:1px solid #7d1d3f;border-radius:2px;margin-right:4px"></span>Quan trọng</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--s2);border:1px solid var(--border);border-radius:2px;margin-right:4px"></span>Thường</span>
+      </div>
+      <!-- Mini spreadsheet -->
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:6px">
+        <table id="mini-sheet-table" style="border-collapse:collapse;min-width:100%;table-layout:fixed">
+          <thead><tr style="background:var(--s2)">
+            ${inputCols.map(col=>{
+              const imp = cfg.important.includes(col);
+              return `<th style="width:${colWidth(col)};padding:7px 8px;font-size:11px;font-weight:600;text-align:left;border-bottom:2px solid var(--border);
+                background:${imp?'#fdf2f8':'#f1f5f9'};color:${imp?'#be185d':'#334155'};white-space:nowrap">${col}</th>`;
+            }).join('')}
+          </tr></thead>
+          <tbody id="msr-tbody">${buildRows(5)}</tbody>
+        </table>
+      </div>
+      <button onclick="msrAddRows()" style="background:none;border:1px dashed var(--border);border-radius:6px;color:var(--txt3);padding:7px;font-size:12px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--acc)';this.style.color='var(--acc)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--txt3)'">+ Thêm 5 dòng</button>
+    </div>`;
+
+  // Store context
+  window._msrSheet = sheet;
+  window._msrCols  = inputCols;
+  window._msrCfg   = cfg;
+  window._msrRowCount = 5;
+
+  document.getElementById('log-modal-ok').textContent = 'Lưu vào Google Sheets';
+  document.getElementById('log-modal-ok').onclick = msrSave;
+
+  // Setup paste handler
+  setTimeout(() => {
+    document.getElementById('mini-sheet-table').addEventListener('paste', msrHandlePaste);
+    document.getElementById('mini-sheet-table').addEventListener('keydown', msrTableKeydown);
+    // Focus first cell
+    const first = document.querySelector('.msr-cell');
+    if (first) first.focus();
+  }, 100);
+
+  document.getElementById('log-modal').style.display = 'flex';
 }
 
-function msrGetBg(r,c){const col=(window._msrCols||[])[c];return(window._msrCfg&&window._msrCfg.important.includes(col))?'#fff0f8':'#fff';}
-function msrClearSelection(){_msrSelected.forEach(k=>{const[r,c]=k.split('-').map(Number),td=document.querySelector(`td.msr-td[data-row="${r}"][data-col="${c}"]`);if(td)td.style.background=msrGetBg(r,c);});_msrSelected.clear();}
-function msrSelectRange(r1,c1,r2,c2){msrClearSelection();const[rMin,rMax,cMin,cMax]=[Math.min(r1,r2),Math.max(r1,r2),Math.min(c1,c2),Math.max(c1,c2)];for(let r=rMin;r<=rMax;r++)for(let c=cMin;c<=cMax;c++){const td=document.querySelector(`td.msr-td[data-row="${r}"][data-col="${c}"]`);if(td){td.style.background='#bfdbfe';_msrSelected.add(`${r}-${c}`);}}}
-function msrMouseDown(e){const td=e.target.closest('td.msr-td');if(!td)return;const r=+td.dataset.row,c=+td.dataset.col;msrClearSelection();_msrSelecting=true;_msrSelStart={r,c};msrSelectRange(r,c,r,c);const inp=td.querySelector('input');if(inp)inp.focus();}
-function msrMouseOver(e){if(!_msrSelecting||!_msrSelStart)return;const td=e.target.closest('td.msr-td');if(!td)return;msrSelectRange(_msrSelStart.r,_msrSelStart.c,+td.dataset.row,+td.dataset.col);}
-function msrMouseUp(){_msrSelecting=false;}
-function msrGlobalKeydown(e){
-  const modal=document.getElementById('log-modal');if(!modal||modal.style.display==='none')return;
-  if((e.key==='Delete'||e.key==='Backspace')&&_msrSelected.size>1){e.preventDefault();_msrSelected.forEach(k=>{const[r,c]=k.split('-').map(Number),inp=document.querySelector(`input.msr-cell[data-row="${r}"][data-col="${c}"]`);if(inp)inp.value='';});}
-  if(e.key==='Escape')msrClearSelection();
-}
-function msrKeyNav(e,ri,ci,tot){
-  if(e.key==='Tab'){e.preventDefault();const n=document.querySelector(`[data-row="${ri}"][data-col="${ci+1}"]`)||document.querySelector(`[data-row="${ri+1}"][data-col="0"]`);if(n)n.focus();}
-  if(e.key==='Enter'){e.preventDefault();const n=document.querySelector(`input.msr-cell[data-row="${ri+1}"][data-col="${ci}"]`);if(n)n.focus();}
-}
-function msrAddRows(){
-  const cfg=window._msrCfg,inputCols=window._msrCols,start=window._msrRowCount,tbody=document.getElementById('msr-tbody');
-  const typeOpts=['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
-  for(let ri=start;ri<start+5;ri++){const tr=document.createElement('tr');tr.id=`msr-row-${ri}`;tr.innerHTML=inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${ri}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;return`<td class="msr-td" data-row="${ri}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrKeyNav(event,${ri},${ci},${inputCols.length})"></td>`;}).join('');tbody.appendChild(tr);}
-  window._msrRowCount=start+5;
-}
-function msrHandlePaste(e){
-  e.preventDefault();const text=e.clipboardData.getData('text/plain'),lines=text.split('\n').filter(l=>l.trim());
-  const el=document.activeElement,sr=+(el.dataset&&el.dataset.row)||0,sc=+(el.dataset&&el.dataset.col)||0;
-  while(window._msrRowCount<sr+lines.length)msrAddRows();
-  lines.forEach((line,li)=>line.split('\t').forEach((val,ci)=>{const idx=sc+ci;if(idx>=window._msrCols.length)return;const inp=document.querySelector(`[data-row="${sr+li}"][data-col="${idx}"]`);if(inp)inp.value=val.trim();}));
-}
-async function msrSave(){
-  const sheet=window._msrSheet,cfg=window._msrCfg,inputCols=window._msrCols,btn=document.getElementById('log-modal-ok');
-  btn.textContent='Đang lưu...';btn.disabled=true;let saved=0;
-  for(let ri=0;ri<window._msrRowCount;ri++){
-    const vals=inputCols.map((_,ci)=>{const el=document.querySelector(`[data-row="${ri}"][data-col="${ci}"]`);return el?el.value.trim():'';});
-    if(vals.every(v=>!v))continue;
-    const rowData=cfg.cols.map(col=>{if(cfg.readonly.includes(col))return'';const idx=inputCols.indexOf(col);return idx>=0?vals[idx]:'';});
-    try{const res=await gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)});if(res.ok)saved++;}catch(err){}
+function msrAddRows() {
+  const tbody = document.getElementById('msr-tbody');
+  const cfg   = window._msrCfg;
+  const inputCols = window._msrCols;
+  const start = window._msrRowCount;
+  const typeOpts = ['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+
+  for (let ri = start; ri < start+5; ri++) {
+    const tr = document.createElement('tr');
+    tr.id = `msr-row-${ri}`;
+    tr.innerHTML = inputCols.map((col,ci)=>{
+      const imp = cfg.important.includes(col);
+      const bg  = imp ? 'background:#fff0f8' : 'background:#fff';
+      if (col === 'TYPE') return `<td style="${bg}"><select class="msr-cell" data-row="${ri}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:var(--txt);font-size:12px;padding:4px;outline:none">${typeOpts}</select></td>`;
+      return `<td style="${bg}"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:var(--txt);font-size:12px;padding:4px 6px;outline:none" placeholder="${col}" onkeydown="msrKeyNav(event,${ri},${ci},${inputCols.length})"></td>`;
+    }).join('');
+    tbody.appendChild(tr);
   }
-  btn.disabled=false;
-  document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);
-  document.getElementById('log-modal').style.display='none';
-  delete _logisticsCache[sheet];await loadLogistics();
-  if(saved>0)showNotif('n-ok',`✅ Đã lưu ${saved} dòng vào ${sheet}`);
+  window._msrRowCount = start + 5;
 }
-async function loadLogistics(){
-  const el=document.getElementById('view-logistics');if(!el)return;
-  const sheets=getAccessibleSheets();if(!_logisticsSheet)_logisticsSheet=sheets[0];
-  if(_logisticsCache[_logisticsSheet]){_logisticsData=_logisticsCache[_logisticsSheet];el.innerHTML=buildLogisticsView();gasCall({action:'getSheet',sheet:_logisticsSheet}).then(r=>{if(r.ok){_logisticsCache[_logisticsSheet]=r.rows;_logisticsData=r.rows;el.innerHTML=buildLogisticsView();}});return;}
-  el.innerHTML=`<div style="text-align:center;padding:40px;color:#64748b">⏳ Đang tải...</div>`;
-  try{const res=await gasCall({action:'getSheet',sheet:_logisticsSheet});if(!res.ok)throw new Error(res.error);_logisticsData=res.rows;_logisticsCache[_logisticsSheet]=res.rows;el.innerHTML=buildLogisticsView();}
-  catch(e){el.innerHTML=`<div style="color:#dc2626;padding:20px">❌ ${e.message}</div>`;}
+
+function msrKeyNav(e, ri, ci, totalCols) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const nextCi = ci + 1;
+    if (nextCi < totalCols) {
+      const next = document.querySelector(`[data-row="${ri}"][data-col="${nextCi}"]`);
+      if (next) next.focus();
+    } else {
+      const next = document.querySelector(`[data-row="${ri+1}"][data-col="0"]`);
+      if (next) next.focus();
+    }
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const next = document.querySelector(`[data-row="${ri+1}"][data-col="${ci}"]`);
+    if (next) next.focus();
+  }
 }
-async function switchLogisticsSheet(name){_logisticsSheet=name;_logisticsData=[];await loadLogistics();}
-async function deleteLogisticsRow(rowIndex){if(!confirm('Xóa dòng này?'))return;try{const res=await gasCall({action:'deleteRow',sheet:_logisticsSheet,rowIndex});if(!res.ok)throw new Error(res.error);delete _logisticsCache[_logisticsSheet];await loadLogistics();}catch(e){alert('Lỗi: '+e.message);}}
-function openAddRowModal(sheet){openMiniSheet(sheet);}
+
+function msrTableKeydown(e) {
+  // Delete/Backspace clears focused cell
+  if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.classList.contains('msr-cell')) {
+    if (e.target.tagName === 'INPUT' && e.target.selectionStart === 0 && e.target.selectionEnd === e.target.value.length) {
+      e.target.value = '';
+      e.preventDefault();
+    }
+  }
+}
+
+function msrHandleKeydown(e) {
+  // Select all cells with Ctrl+A
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+    e.preventDefault();
+    document.querySelectorAll('.msr-cell').forEach(el => {
+      if (el.tagName === 'INPUT') { el.select(); }
+    });
+    return;
+  }
+}
+
+function msrHandlePaste(e) {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text/plain');
+  const lines = text.split('\n').filter(l => l.trim());
+  const focusEl = document.activeElement;
+  const startRow = parseInt(focusEl.dataset.row)||0;
+  const startCol = parseInt(focusEl.dataset.col)||0;
+  const inputCols = window._msrCols;
+
+  // Ensure enough rows
+  const needed = startRow + lines.length;
+  while (window._msrRowCount < needed) msrAddRows();
+
+  lines.forEach((line, li) => {
+    const cells = line.split('\t');
+    cells.forEach((val, ci) => {
+      const colIdx = startCol + ci;
+      if (colIdx >= inputCols.length) return;
+      const el = document.querySelector(`[data-row="${startRow+li}"][data-col="${colIdx}"]`);
+      if (el) el.value = val.trim();
+    });
+  });
+}
+
+async function msrSave() {
+  const sheet = window._msrSheet;
+  const cfg   = window._msrCfg;
+  const inputCols = window._msrCols;
+  const rowCount  = window._msrRowCount;
+
+  const btn = document.getElementById('log-modal-ok');
+  btn.textContent = 'Đang lưu...';
+  btn.disabled = true;
+
+  let saved = 0, skipped = 0;
+
+  for (let ri = 0; ri < rowCount; ri++) {
+    // Collect row data
+    const rowVals = inputCols.map((col, ci) => {
+      const el = document.querySelector(`[data-row="${ri}"][data-col="${ci}"]`);
+      return el ? el.value.trim() : '';
+    });
+
+    // Skip empty rows
+    if (rowVals.every(v => !v)) { skipped++; continue; }
+
+    // Map to full cols
+    const rowData = cfg.cols.map(col => {
+      if (cfg.readonly.includes(col)) return '';
+      const idx = inputCols.indexOf(col);
+      return idx >= 0 ? rowVals[idx] : '';
+    });
+
+    try {
+      const res = await gasCall({ action: 'addRow', sheet, rowData: JSON.stringify(rowData) });
+      if (res.ok) saved++;
+    } catch(err) { /* skip */ }
+  }
+
+  btn.disabled = false;
+  document.getElementById('log-modal').style.display = 'none';
+  delete _logisticsCache[sheet];
+  await loadLogistics();
+  if (saved > 0) showNotif('n-ok', `✅ Đã lưu ${saved} dòng vào sheet ${sheet}`);
+}
+
+async function loadLogistics() {
+  const el = document.getElementById('view-logistics');
+  if (!el) return;
+  const sheets = getAccessibleSheets();
+  if (!_logisticsSheet) _logisticsSheet = sheets[0];
+
+  if (_logisticsCache[_logisticsSheet]) {
+    _logisticsData = _logisticsCache[_logisticsSheet];
+    el.innerHTML = buildLogisticsView();
+    gasCall({ action: 'getSheet', sheet: _logisticsSheet }).then(res => {
+      if (res.ok) { _logisticsCache[_logisticsSheet] = res.rows; _logisticsData = res.rows; el.innerHTML = buildLogisticsView(); }
+    });
+    return;
+  }
+  el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--txt3)">⏳ Đang tải dữ liệu từ Google Sheets...</div>`;
+  try {
+    const res = await gasCall({ action: 'getSheet', sheet: _logisticsSheet });
+    if (!res.ok) throw new Error(res.error);
+    _logisticsData = res.rows;
+    _logisticsCache[_logisticsSheet] = res.rows;
+    el.innerHTML = buildLogisticsView();
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);padding:20px">❌ Lỗi kết nối Google Sheets: ${e.message}</div>`;
+  }
+}
+
+async function switchLogisticsSheet(name) {
+  _logisticsSheet = name;
+  _logisticsData = [];
+  await loadLogistics();
+}
+
+async function deleteLogisticsRow(rowIndex) {
+  if (!confirm('Xóa dòng này?')) return;
+  try {
+    const res = await gasCall({ action: 'deleteRow', sheet: _logisticsSheet, rowIndex });
+    if (!res.ok) throw new Error(res.error);
+    delete _logisticsCache[_logisticsSheet];
+    await loadLogistics();
+  } catch(e) {
+    alert('Lỗi xóa: ' + e.message);
+  }
+}
+
+// Keep openAddRowModal as alias
+function openAddRowModal(sheet) { openMiniSheet(sheet); }
+
 
 function getAccessibleSheets() {
   const dept = CU.dept;
