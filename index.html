@@ -136,9 +136,9 @@
 #log-modal table th { background: #f0fdf4 !important; color: #166534 !important; border-bottom: 2px solid #bbf7d0 !important; text-transform: none !important; }
 #log-modal table th.lg-imp { background: #fce7f3 !important; color: #be185d !important; border-bottom: 2px solid #f9a8d4 !important; }
 #log-modal table td { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
-#log-modal td input, #log-modal td select { color: #0f172a !important; background: transparent !important; }
+#log-modal td input, #log-modal td select { color: #0f172a !important; background: #fff !important; }
 #log-modal td input::placeholder { color: #94a3b8 !important; }
-#log-modal td input:focus { background: #f0fdf4 !important; outline: 2px solid #16a34a !important; }
+#log-modal td input:focus { background: #fff !important; outline: 2px solid #16a34a !important; }
 
 </style></head><body><div id="setup-modal" class="overlay"><div class="modal" style="width:460px"><div class="mhead"><span class="mtitle">Cấu hình Supabase</span></div><div class="mbody"><p style="font-size:13px;color:var(--txt2)">Vào <b>Supabase → Settings → API Keys → Legacy anon</b> để lấy thông tin.</p><div><label class="flbl">Project URL</label><input class="finp" id="cfg-url" placeholder="https://xxxx.supabase.co"></div><div><label class="flbl">Anon Public Key</label><input class="finp" id="cfg-key" placeholder="eyJ..."></div><div id="cfg-err" class="ferr"></div></div><div class="mfoot"><button class="btn btn-p" onclick="saveConfig()">Lưu & kết nối</button></div></div></div><div id="license-screen" class="fullscreen" style="display:none"><div class="card" style="width:420px"><div style="text-align:center;margin-bottom:20px"><div style="font-size:32px;margin-bottom:8px">🔐</div><div class="card-title" style="text-align:center">BÀN GIAO CHÌ</div><div class="card-sub" style="text-align:center">Nhập License Key để kích hoạt phần mềm</div></div><label class="flbl">License Key</label> <input class="finp" id="lic-key" placeholder="Nhập License Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown='"Enter"===event.key&&checkLicense()' style="text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono)" onfocus='this.value=""' onpaste="setTimeout(()=>this.value=this.value.trim().toUpperCase(),0)"><div class="ferr" id="lic-err"></div><button class="btn btn-p btn-full" onclick="checkLicense()">Kích hoạt</button><div style="margin-top:16px;padding:12px;background:var(--s2);border-radius:var(--r);font-size:12px;color:var(--txt3);text-align:center;line-height:1.6">Liên hệ quản trị viên để lấy License Key.<br>Key chỉ cần nhập một lần trên mỗi máy.</div></div></div><div id="login-screen" class="fullscreen" style="display:none"><div class="card"><div class="card-title">BÀN GIAO <span style="color:var(--acc)">CHÌ</span></div><div class="card-sub">Hệ thống quản lý bàn giao chì container</div><label class="flbl">Tên đăng nhập</label> <input class="finp" id="lu" placeholder="username" autocomplete="username"> <label class="flbl">Mật khẩu</label> <input class="finp" type="password" id="lp" placeholder="••••••" onkeydown='"Enter"===event.key&&doLogin()'><div class="ferr" id="lerr"></div><button class="btn btn-p btn-full" onclick="doLogin()">Đăng nhập</button></div></div><div id="app"><div class="topbar"><div class="brand">SWS</div><div class="topbar-r"><div class="ping-wrap" title="Realtime"><div class="ping-ring"></div><div class="ping-dot"></div></div><div class="upill"><div class="uav" id="uav">A</div><span id="udisplay">—</span> <span class="dept-badge" id="udept">—</span></div><button class="btn btn-g" style="padding:5px 11px;font-size:12px" onclick='openModal("changepw-modal")'>Đổi mật khẩu</button> <button class="btn btn-g" style="padding:5px 11px;font-size:12px" onclick="doLogout()">Đăng xuất</button></div></div><div style="display:flex;background:var(--s1);border-bottom:2px solid var(--border);padding:0 16px;gap:0">
     <button id="maintab-bangiao" onclick="switchMainTab('bangiao')" style="padding:10px 14px;border:none;border-bottom:3px solid var(--acc);cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:var(--acc);margin-bottom:-2px;white-space:nowrap">🔒 SealLog</button>
@@ -302,22 +302,23 @@ function msrHandlePaste(e){
   e.preventDefault();const text=e.clipboardData.getData('text/plain'),lines=text.split('\n').filter(l=>l.trim());
   const el=document.activeElement,sr=+(el.dataset&&el.dataset.row)||0,sc=+(el.dataset&&el.dataset.col)||0;
   while(window._msrRowCount<sr+lines.length)msrAddRows();
-  lines.forEach((line,li)=>line.split('\t').forEach((val,ci)=>{const idx=sc+ci;if(idx>=window._msrCols.length)return;const inp=document.querySelector(`[data-row="${sr+li}"][data-col="${idx}"]`);if(inp)inp.value=val.trim();}));
+  lines.forEach((line,li)=>line.split('\t').forEach((val,ci)=>{const idx=sc+ci;if(idx>=window._msrCols.length)return;const inp=document.querySelector(`[data-row="${sr+li}"][data-col="${idx}"]`);if(inp){inp.value=val.trim();inp.dispatchEvent(new Event('input'));}}));
 }
-async function msrSave(){
-  const sheet=window._msrSheet,cfg=window._msrCfg,inputCols=window._msrCols,btn=document.getElementById('log-modal-ok');
-  btn.textContent='Đang lưu...';btn.disabled=true;let saved=0;
+function msrSave(){
+  const sheet=window._msrSheet,cfg=window._msrCfg,inputCols=window._msrCols;
+  const rows=[];
   for(let ri=0;ri<window._msrRowCount;ri++){
     const vals=inputCols.map((_,ci)=>{const el=document.querySelector(`[data-row="${ri}"][data-col="${ci}"]`);return el?el.value.trim():'';});
     if(vals.every(v=>!v))continue;
     const rowData=cfg.cols.map(col=>{if(cfg.readonly.includes(col))return'';const idx=inputCols.indexOf(col);return idx>=0?vals[idx]:'';});
-    try{const res=await gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)});if(res.ok)saved++;}catch(err){}
+    rows.push(rowData);
   }
-  btn.disabled=false;
+  rows.forEach(rowData=>gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)}).catch(()=>{}));
   document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);
   document.getElementById('log-modal').style.display='none';
-  delete _logisticsCache[sheet];await loadLogistics();
-  if(saved>0)showNotif('n-ok',`✅ Đã lưu ${saved} dòng vào ${sheet}`);
+  delete _logisticsCache[sheet];
+  if(rows.length>0)showNotif('n-ok',`✅ Đã gửi ${rows.length} dòng — bấm Tải lại để xem`);
+  loadLogistics();
 }
 async function loadLogistics(){
   const el=document.getElementById('view-logistics');if(!el)return;
