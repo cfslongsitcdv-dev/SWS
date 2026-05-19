@@ -1709,10 +1709,10 @@ function buildLogisticsView() {
   </div>
 
   <!-- Table -->
-  <div class="twrap" style="border-radius:10px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;background:#1a1f2e">
+  <div class="twrap" style="border-radius:10px;border:1px solid rgba(255,255,255,0.08);overflow:hidden">
     <table style="table-layout:fixed">
       <thead><tr style="background:rgba(255,255,255,0.03)">
-        <th style="width:36px;padding:9px 12px;font-size:11px;font-weight:700;color:#4e566a;border-bottom:1px solid rgba(255,255,255,0.06)">#</th>
+        <th style="width:36px;padding:9px 12px;font-size:11px;font-weight:700;color:#64748b;border-bottom:1px solid rgba(255,255,255,0.06);text-align:left">#</th>
         ${cfg.cols.map(c=>{
           const imp = cfg.important.includes(c);
           const ro  = cfg.readonly.includes(c);
@@ -2034,21 +2034,21 @@ function buildLogisticsView() {
   </div>
 
   <!-- Table -->
-  <div class="twrap" style="border-radius:10px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;background:#1a1f2e">
-    <table>
+  <div class="twrap" style="border-radius:10px;border:1px solid rgba(255,255,255,0.08);overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;background:#1a1f2e;table-layout:fixed">
       <thead><tr style="background:rgba(255,255,255,0.03)">
-        <th style="width:36px;padding:9px 12px;font-size:11px;font-weight:700;color:#4e566a;border-bottom:1px solid rgba(255,255,255,0.06)">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important&&cfg.important.includes(c);return`<th style="${imp?'color:#f9a8d4;border-bottom:2px solid #db2777;':'color:#8b93a8;border-bottom:1px solid rgba(255,255,255,0.06);'}padding:9px 12px;font-size:11px;font-weight:700;text-align:left;">${c}</th>`;}).join('')}
-        <th style="padding:9px 12px;font-size:11px;color:#4e566a;border-bottom:1px solid rgba(255,255,255,0.06)">Xóa</th>
+        <th style="width:36px;padding:9px 12px;font-size:11px;font-weight:700;color:#64748b;border-bottom:1px solid rgba(255,255,255,0.06);text-align:left">#</th>
+        ${cfg.cols.map(c=>{const imp=cfg.important&&cfg.important.includes(c);return`<th style="padding:9px 12px;font-size:11px;font-weight:700;text-align:left;border-bottom:${imp?'2px solid #db2777':'1px solid rgba(255,255,255,0.06)'};color:${imp?'#f9a8d4':'#94a3b8'}">${c}</th>`;}).join('')}
+        <th style="padding:9px 12px;font-size:11px;color:#64748b;border-bottom:1px solid rgba(255,255,255,0.06)">Xóa</th>
       </tr></thead>
       <tbody>
         ${rows.length===0 ? `<tr><td colspan="${cfg.cols.length+2}" style="text-align:center;padding:24px;color:var(--txt3)">Không có dữ liệu</td></tr>` :
-          rows.map((row,i)=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.04);${i%2===1?'background:rgba(255,255,255,0.02)':''}"> 
-            <td style="color:#4e566a;font-size:11px;padding:9px 12px">${i+1}</td>
+          rows.map((row,i)=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.05);background:${i%2===1?'rgba(255,255,255,0.03)':'#1a1f2e'}">
+            <td style="color:#64748b;font-size:11px;padding:9px 12px">${i+1}</td>
             ${cfg.cols.map((c,ci)=>{
               const val = row[ci]||'';
               if(c==='STATUS') return `<td>${statusBadge(val)}</td>`;
-              return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-size:13px;padding:9px 12px" title="${val}">${val}</td>`;
+              return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-size:13px;padding:9px 12px;background:inherit" title="${val}">${val}</td>`;
             }).join('')}
             <td><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 6px">✕</button></td>
           </tr>`).join('')
