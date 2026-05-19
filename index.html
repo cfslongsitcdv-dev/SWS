@@ -223,7 +223,7 @@ function buildLogisticsView(){
     <table style="width:100%;border-collapse:collapse;background:#fff !important;table-layout:fixed">
       <thead><tr style="background:#f0fdf4 !important">
         <th style="width:36px !important;padding:8px !important;background:#f0fdf4 !important;color:#94a3b8 !important;font-size:11px !important;border-bottom:2px solid #bbf7d0 !important">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th class="${imp?'lg-imp':''}" style="width:${lgColW(c)}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
+        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th class="${imp?'lg-imp':''}" style="width:${lgColW(c)};${imp?'background:#fce7f3 !important;color:#9d174d !important;border-bottom:3px solid #f472b6 !important;font-weight:800 !important;font-size:12px !important;padding:8px 10px !important;':'background:#f0fdf4;color:#64748b;border-bottom:2px solid #bbf7d0;font-weight:700;font-size:11px;padding:8px 10px;'}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
         <th style="width:40px;background:#f0fdf4"></th>
       </tr></thead>
       <tbody>
