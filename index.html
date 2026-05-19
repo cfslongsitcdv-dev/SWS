@@ -255,7 +255,7 @@ function openMiniSheet(sheet){
       <span style="color:#64748b;font-size:11px">Thứ tự: ${inputCols.join(' → ')}</span>
     </div>
     <div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff">
-      <table id="mini-sheet-table" style="border-collapse:collapse;min-width:100%;table-layout:fixed;user-select:none">
+      <table id="mini-sheet-table" style="border-collapse:collapse;min-width:100%;table-layout:fixed">
         <thead><tr style="background:#f0fdf4">${inputCols.map(col=>{const imp=cfg.important.includes(col);return`<th style="padding:7px 8px;font-size:11px;font-weight:700;text-align:left;border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'};border-right:1px solid #e2e8f0;background:${imp?'#fce7f3':'#f0fdf4'};color:${imp?'#be185d':'#166534'};width:${lgColW(col)};white-space:nowrap">${col}</th>`;}).join('')}</tr></thead>
         <tbody id="msr-tbody">${buildRows(0,6)}</tbody>
       </table>
@@ -267,11 +267,11 @@ function openMiniSheet(sheet){
   document.getElementById('log-modal-ok').onclick=msrSave;
   setTimeout(()=>{
     const tbl=document.getElementById('mini-sheet-table');
-    tbl.addEventListener('paste',msrHandlePaste);
     tbl.addEventListener('mousedown',msrMouseDown);
     tbl.addEventListener('mouseover',msrMouseOver);
     document.addEventListener('mouseup',msrMouseUp);
     document.addEventListener('keydown',msrGlobalKeydown);
+    document.addEventListener('paste',msrHandlePaste);
     const first=document.querySelector('.msr-cell');if(first)first.focus();
   },100);
   document.getElementById('log-modal').style.display='flex';
@@ -299,8 +299,10 @@ function msrAddRows(){
   window._msrRowCount=start+5;
 }
 function msrHandlePaste(e){
+  const modal=document.getElementById('log-modal');if(!modal||modal.style.display==='none')return;
   e.preventDefault();const text=e.clipboardData.getData('text/plain'),lines=text.split('\n').filter(l=>l.trim());
-  const el=document.activeElement,sr=+(el.dataset&&el.dataset.row)||0,sc=+(el.dataset&&el.dataset.col)||0;
+  const el=document.activeElement;
+  const sr=+(el.dataset&&el.dataset.row)||0,sc=+(el.dataset&&el.dataset.col)||0;
   while(window._msrRowCount<sr+lines.length)msrAddRows();
   lines.forEach((line,li)=>line.split('\t').forEach((val,ci)=>{const idx=sc+ci;if(idx>=window._msrCols.length)return;const inp=document.querySelector(`[data-row="${sr+li}"][data-col="${idx}"]`);if(inp)inp.value=val.trim();}));
 }
@@ -314,7 +316,7 @@ async function msrSave(){
     try{const res=await gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)});if(res.ok)saved++;}catch(err){}
   }
   btn.disabled=false;
-  document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);
+  document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.removeEventListener('paste',msrHandlePaste);
   document.getElementById('log-modal').style.display='none';
   delete _logisticsCache[sheet];await loadLogistics();
   if(saved>0)showNotif('n-ok',`✅ Đã lưu ${saved} dòng vào ${sheet}`);
@@ -383,7 +385,7 @@ function buildLogisticsView() {
       <tbody>
         ${rows.length===0 ? `<tr><td colspan="${cfg.cols.length+2}" style="text-align:center;padding:24px;color:var(--txt3)">Không có dữ liệu</td></tr>` :
           rows.map((row,i)=>`<tr>
-            <td style="color:var(--txt3);font-size:11px">${i+1}</td>
+            <td style="color:#64748b;font-size:11px;font-weight:600">${i+1}</td>
             ${cfg.cols.map((c,ci)=>{
               const val = row[ci]||'';
               if(c==='STATUS') return `<td>${statusBadge(val)}</td>`;
@@ -449,11 +451,11 @@ async function deleteLogisticsRow(rowIndex) {
   <div class="modal" style="width:min(95vw,900px);max-height:90vh;display:flex;flex-direction:column">
     <div class="mhead">
       <span class="mtitle" id="log-modal-title">Thêm dòng</span>
-      <button class="mclose" onclick="document.getElementById('log-modal').style.display='none'">×</button>
+      <button class="mclose" onclick="document.removeEventListener('paste',msrHandlePaste);document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none'">×</button>
     </div>
     <div class="mbody" id="log-modal-body" style="overflow-y:auto;flex:1"></div>
     <div class="mfoot">
-      <button class="btn btn-g" onclick="document.getElementById('log-modal').style.display='none'">Hủy</button>
+      <button class="btn btn-g" onclick="document.removeEventListener('paste',msrHandlePaste);document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none'">Hủy</button>
       <button class="btn btn-p" id="log-modal-ok">Thêm</button>
     </div>
   </div>
