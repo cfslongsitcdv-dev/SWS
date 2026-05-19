@@ -1673,8 +1673,10 @@ function buildLogisticsView(){
 function openMiniSheet(sheet){
   const cfg=LOGISTICS_SHEETS[sheet],inputCols=cfg.cols.filter(c=>!cfg.readonly.includes(c));
   _msrSelected=new Set();_msrSelecting=false;
+  const typeOpts=['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
   const buildRows=(s,n)=>Array.from({length:n},(_,ri)=>{const r=s+ri;return`<tr id="msr-row-${r}">${inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';
-    return`<td class="msr-td" data-row="${r}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${r}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrCellKeydown(event,${r},${ci},${inputCols.length})" onpaste="msrHandlePaste(event)"></td>`;}).join('')}</tr>`;}).join('');
+    if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${r}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;
+    return`<td class="msr-td" data-row="${r}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${r}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrKeyNav(event,${r},${ci},${inputCols.length})"></td>`;}).join('')}</tr>`;}).join('');
   document.getElementById('log-modal-title').textContent='Thêm dòng — '+sheet;
   document.getElementById('log-modal-body').innerHTML=`<div style="display:flex;flex-direction:column;gap:10px;background:#f8fafc;padding:4px">
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px;font-size:12px;color:#166534">
@@ -1682,7 +1684,7 @@ function openMiniSheet(sheet){
       <span style="color:#64748b;font-size:11px">Thứ tự: ${inputCols.join(' → ')}</span>
     </div>
     <div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff">
-      <table id="mini-sheet-table" style="border-collapse:collapse;min-width:100%;table-layout:fixed">
+      <table id="mini-sheet-table" style="border-collapse:collapse;min-width:100%;table-layout:fixed;user-select:none">
         <thead><tr style="background:#f0fdf4">${inputCols.map(col=>{const imp=cfg.important.includes(col);return`<th style="padding:7px 8px;font-size:11px;font-weight:700;text-align:left;border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'};border-right:1px solid #e2e8f0;background:${imp?'#fce7f3':'#f0fdf4'};color:${imp?'#be185d':'#166534'};width:${lgColW(col)};white-space:nowrap">${col}</th>`;}).join('')}</tr></thead>
         <tbody id="msr-tbody">${buildRows(0,6)}</tbody>
       </table>
@@ -1694,11 +1696,11 @@ function openMiniSheet(sheet){
   document.getElementById('log-modal-ok').onclick=msrSave;
   setTimeout(()=>{
     const tbl=document.getElementById('mini-sheet-table');
+    tbl.addEventListener('paste',msrHandlePaste);
     tbl.addEventListener('mousedown',msrMouseDown);
     tbl.addEventListener('mouseover',msrMouseOver);
     document.addEventListener('mouseup',msrMouseUp);
     document.addEventListener('keydown',msrGlobalKeydown);
-    // paste handled directly on each input via onpaste attribute
     const first=document.querySelector('.msr-cell');if(first)first.focus();
   },100);
   document.getElementById('log-modal').style.display='flex';
@@ -1715,27 +1717,19 @@ function msrGlobalKeydown(e){
   if((e.key==='Delete'||e.key==='Backspace')&&_msrSelected.size>1){e.preventDefault();_msrSelected.forEach(k=>{const[r,c]=k.split('-').map(Number),inp=document.querySelector(`input.msr-cell[data-row="${r}"][data-col="${c}"]`);if(inp)inp.value='';});}
   if(e.key==='Escape')msrClearSelection();
 }
-function msrCellKeydown(e,ri,ci,tot){
-  if((e.key==='Delete'||e.key==='Backspace')&&_msrSelected&&_msrSelected.size>1){
-    e.preventDefault();
-    _msrSelected.forEach(k=>{const[r,c]=k.split('-').map(Number),inp=document.querySelector(`input.msr-cell[data-row="${r}"][data-col="${c}"]`);if(inp)inp.value='';});
-    return;
-  }
-  msrKeyNav(e,ri,ci,tot);
-}
 function msrKeyNav(e,ri,ci,tot){
   if(e.key==='Tab'){e.preventDefault();const n=document.querySelector(`[data-row="${ri}"][data-col="${ci+1}"]`)||document.querySelector(`[data-row="${ri+1}"][data-col="0"]`);if(n)n.focus();}
   if(e.key==='Enter'){e.preventDefault();const n=document.querySelector(`input.msr-cell[data-row="${ri+1}"][data-col="${ci}"]`);if(n)n.focus();}
 }
 function msrAddRows(){
   const cfg=window._msrCfg,inputCols=window._msrCols,start=window._msrRowCount,tbody=document.getElementById('msr-tbody');
-  for(let ri=start;ri<start+5;ri++){const tr=document.createElement('tr');tr.id=`msr-row-${ri}`;tr.innerHTML=inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';return`<td class="msr-td" data-row="${ri}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrCellKeydown(event,${ri},${ci},${inputCols.length})" onpaste="msrHandlePaste(event)"></td>`;}).join('');tbody.appendChild(tr);}
+  const typeOpts=['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+  for(let ri=start;ri<start+5;ri++){const tr=document.createElement('tr');tr.id=`msr-row-${ri}`;tr.innerHTML=inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${ri}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;return`<td class="msr-td" data-row="${ri}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrKeyNav(event,${ri},${ci},${inputCols.length})"></td>`;}).join('');tbody.appendChild(tr);}
   window._msrRowCount=start+5;
 }
 function msrHandlePaste(e){
   e.preventDefault();const text=e.clipboardData.getData('text/plain'),lines=text.split('\n').filter(l=>l.trim());
-  const el=e.target;
-  const sr=+(el.dataset&&el.dataset.row)||0,sc=+(el.dataset&&el.dataset.col)||0;
+  const el=document.activeElement,sr=+(el.dataset&&el.dataset.row)||0,sc=+(el.dataset&&el.dataset.col)||0;
   while(window._msrRowCount<sr+lines.length)msrAddRows();
   lines.forEach((line,li)=>line.split('\t').forEach((val,ci)=>{const idx=sc+ci;if(idx>=window._msrCols.length)return;const inp=document.querySelector(`[data-row="${sr+li}"][data-col="${idx}"]`);if(inp)inp.value=val.trim();}));
 }
@@ -1749,7 +1743,8 @@ async function msrSave(){
     try{const res=await gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)});if(res.ok)saved++;}catch(err){}
   }
   btn.disabled=false;
-  document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none';
+  document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);
+  document.getElementById('log-modal').style.display='none';
   delete _logisticsCache[sheet];await loadLogistics();
   if(saved>0)showNotif('n-ok',`✅ Đã lưu ${saved} dòng vào ${sheet}`);
 }
