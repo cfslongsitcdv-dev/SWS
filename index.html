@@ -377,7 +377,7 @@ function buildLogisticsView() {
     <table>
       <thead><tr>
         <th style="width:36px">#</th>
-        ${cfg.cols.map(c=>`<th>${c}</th>`).join('')}
+        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="${imp?'background:#fce7f3 !important;color:#9d174d !important;border-bottom:3px solid #f472b6 !important;font-weight:800 !important;font-size:12px !important;':''}">${c}</th>`;}).join('')}
         <th>Xóa</th>
       </tr></thead>
       <tbody>
