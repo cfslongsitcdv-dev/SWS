@@ -1878,11 +1878,11 @@ async function deleteLogisticsRow(rowIndex) {
   <div class="modal" style="width:min(95vw,900px);max-height:90vh;display:flex;flex-direction:column">
     <div class="mhead">
       <span class="mtitle" id="log-modal-title">Thêm dòng</span>
-      <button class="mclose" onclick="document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none'">×</button>
+      <button class="mclose" onclick="document.getElementById('log-modal').style.display='none'">×</button>
     </div>
     <div class="mbody" id="log-modal-body" style="overflow-y:auto;flex:1"></div>
     <div class="mfoot">
-      <button class="btn btn-g" onclick="document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none'">Hủy</button>
+      <button class="btn btn-g" onclick="document.getElementById('log-modal').style.display='none'">Hủy</button>
       <button class="btn btn-p" id="log-modal-ok">Thêm</button>
     </div>
   </div>
