@@ -206,7 +206,7 @@ function buildLogisticsView(){
       </tr></thead>
       <tbody>
         ${rows.length===0?`<tr><td colspan="${cfg.cols.length+2}" style="text-align:center;padding:28px;color:#94a3b8">Không có dữ liệu</td></tr>`:
-          rows.map((row,i)=>`<tr style="border-bottom:1px solid #f0fdf4;background:${i%2===0?'#fff':'#f8fffe'}" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background=''">`
+          rows.map((row,i)=>`<tr style="border-bottom:1px solid #f0fdf4;background:${i%2===0?'#fff':'#f8fffe'}" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background=''">
             <td style="text-align:center;font-size:11px;color:#94a3b8;padding:8px 4px">${i+1}</td>
             ${cfg.cols.map((c,ci)=>{const val=row[ci]||'',imp=cfg.important.includes(c);
               if(c==='STATUS')return`<td style="padding:8px 10px;text-align:center">${lgStatusBadge(val)}</td>`;
