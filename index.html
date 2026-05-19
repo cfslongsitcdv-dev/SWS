@@ -346,7 +346,7 @@ function buildLogisticsView() {
 
   const statusBadge = (s) => {
     if (!s) return '<span style="color:var(--txt3);font-size:11px">—</span>';
-    if (s === 'DONE') return '<span style="background:#1a4731;color:#3fb950;padding:2px 8px;border-radius:4px;font-size:11px">DONE</span>';
+    if (s === 'DONE') return '<span style="background:#16a34a;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.04em">DONE</span>';
     if (s.startsWith('ERR')) return '<span style="background:#3d1a1a;color:#f85149;padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
     return '<span style="background:var(--s3);color:var(--txt2);padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
   };
@@ -387,7 +387,7 @@ function buildLogisticsView() {
             ${cfg.cols.map((c,ci)=>{
               const val = row[ci]||'';
               if(c==='STATUS') return `<td>${statusBadge(val)}</td>`;
-              return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${val}">${val}</td>`;
+              return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-weight:500;font-size:13px" title="${val}">${val}</td>`;
             }).join('')}
             <td><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 6px">✕</button></td>
           </tr>`).join('')
