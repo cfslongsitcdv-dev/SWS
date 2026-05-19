@@ -224,29 +224,37 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
 }
 
 /* Logistics theme */
-#view-logistics {
-  background: #f0fdf4;
-  color: #0f172a;
-  border-radius: 10px;
-  padding: 0;
+#view-logistics { background: #f0fdf4; border-radius: 10px; padding: 0; }
+#view-logistics table { background: #fff !important; color: #0f172a !important; }
+#view-logistics table th { 
+  background: #f0fdf4 !important; 
+  color: #64748b !important; 
+  border-bottom: 2px solid #bbf7d0 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 11px !important;
+  padding: 8px 10px !important;
 }
-#subtabbar-logistics {
-  background: #f0fdf4 !important;
-  border-bottom: 1px solid #bbf7d0 !important;
+#view-logistics table td { 
+  border-bottom: 1px solid #f0fdf4 !important; 
+  color: #64748b !important;
+  padding: 9px 10px !important;
 }
-#view-logistics table { background: #fff; color: #0f172a; }
-#view-logistics thead tr { background: #f0fdf4 !important; }
-#view-logistics th { border-bottom: 2px solid #bbf7d0 !important; }
-#view-logistics td { border-bottom: 1px solid #f0fdf4 !important; color: #0f172a; }
-#view-logistics tr:hover td { background: #dcfce7 !important; }
-#log-modal .modal { background: #fff; color: #0f172a; }
-#log-modal .mhead { background: #f0fdf4; border-bottom: 1px solid #bbf7d0; }
-#log-modal .mtitle { color: #166534; font-weight: 700; }
-#log-modal .mfoot { background: #f8fafc; border-top: 1px solid #e2e8f0; }
-#log-modal .mbody { background: #f8fafc; }
-#log-modal td input, #log-modal td select { color: #0f172a !important; }
+#view-logistics table tr:hover td { background: #dcfce7 !important; }
+#view-logistics table tr:hover th { background: #dcfce7 !important; }
+#view-logistics th.lg-imp { background: #fce7f3 !important; color: #be185d !important; border-bottom: 2px solid #f9a8d4 !important; }
+#view-logistics td.lg-imp { color: #be185d !important; font-weight: 600 !important; }
+#log-modal .modal { background: #fff !important; color: #0f172a !important; }
+#log-modal .mhead { background: #f0fdf4 !important; border-bottom: 1px solid #bbf7d0 !important; }
+#log-modal .mtitle { color: #166534 !important; font-weight: 700 !important; }
+#log-modal .mfoot { background: #f8fafc !important; border-top: 1px solid #e2e8f0 !important; }
+#log-modal .mbody { background: #f8fafc !important; }
+#log-modal table th { background: #f0fdf4 !important; color: #166534 !important; border-bottom: 2px solid #bbf7d0 !important; text-transform: none !important; }
+#log-modal table th.lg-imp { background: #fce7f3 !important; color: #be185d !important; border-bottom: 2px solid #f9a8d4 !important; }
+#log-modal table td { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
+#log-modal td input, #log-modal td select { color: #0f172a !important; background: transparent !important; }
 #log-modal td input::placeholder { color: #94a3b8 !important; }
-#log-modal td input:focus { background: #f0fdf4 !important; outline: 2px solid #16a34a !important; outline-offset: -2px; border-radius: 2px; }
+#log-modal td input:focus { background: #f0fdf4 !important; outline: 2px solid #16a34a !important; }
 
 </style>
 </head>
@@ -1630,7 +1638,7 @@ function buildLogisticsView(){
     <table style="width:100%;border-collapse:collapse;background:#fff !important;table-layout:fixed">
       <thead><tr style="background:#f0fdf4 !important">
         <th style="width:36px !important;padding:8px !important;background:#f0fdf4 !important;color:#94a3b8 !important;font-size:11px !important;border-bottom:2px solid #bbf7d0 !important">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="width:${lgColW(c)};padding:8px 10px;font-size:11px;font-weight:700;text-align:left;background:${imp?'#fce7f3':'#f0fdf4'} !important;color:${imp?'#be185d':'#64748b'} !important;border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'} !important">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
+        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th class="${imp?'lg-imp':''}" style="width:${lgColW(c)}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
         <th style="width:40px;background:#f0fdf4"></th>
       </tr></thead>
       <tbody>
@@ -1639,7 +1647,7 @@ function buildLogisticsView(){
             <td style="text-align:center;font-size:11px;color:#94a3b8;padding:8px 4px">${i+1}</td>
             ${cfg.cols.map((c,ci)=>{const val=row[ci]||'',imp=cfg.important.includes(c);
               if(c==='STATUS')return`<td style="padding:8px 10px;text-align:center">${lgStatusBadge(val)}</td>`;
-              return`<td style="padding:8px 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${imp?'#be185d':'#64748b'} !important;font-weight:${imp?600:400}" title="${val}">${val}</td>`;}).join('')}
+              return`<td class="${imp?'lg-imp':''}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${val}">${val}</td>`;}).join('')}
             <td style="text-align:center"><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:13px;padding:2px 6px;opacity:.5;border-radius:4px" onmouseover="this.style.opacity=1;this.style.background='#fee2e2'" onmouseout="this.style.opacity=.5;this.style.background='none'">✕</button></td>
           </tr>`).join('')}
       </tbody>
