@@ -223,7 +223,50 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
   .stat{padding:10px 12px}
 }
 
-
+/* Logistics theme */
+#view-logistics {
+  --log-bg: #f8fafc;
+  --log-s1: #ffffff;
+  --log-s2: #f1f5f9;
+  --log-s3: #e2e8f0;
+  --log-border: #cbd5e1;
+  --log-txt: #0f172a;
+  --log-txt2: #334155;
+  --log-txt3: #64748b;
+  --log-acc: #2563eb;
+  --log-imp: #be185d;
+  --log-imp-bg: #fdf2f8;
+  background: var(--log-bg);
+  color: var(--log-txt);
+  padding: 18px;
+  border-radius: 8px;
+}
+#view-logistics .twrap { background: var(--log-s1); }
+#view-logistics table { background: var(--log-s1); color: var(--log-txt); }
+#view-logistics thead tr { background: var(--log-s2) !important; }
+#view-logistics th { color: var(--log-txt2) !important; border-bottom: 2px solid var(--log-border) !important; }
+#view-logistics td { border-bottom: 1px solid var(--log-s3); color: var(--log-txt); }
+#view-logistics tr:hover td { background: var(--log-s2) !important; }
+#log-modal table { background: #fff; }
+#log-modal thead tr { background: #f1f5f9 !important; }
+#log-modal th { color: #334155 !important; border-bottom: 2px solid #cbd5e1 !important; }
+#log-modal td { background: #fff; border-bottom: 1px solid #e2e8f0; }
+#log-modal td input, #log-modal td select {
+  color: #0f172a !important;
+  background: transparent !important;
+}
+#log-modal td input::placeholder { color: #94a3b8 !important; }
+#log-modal td input:focus, #log-modal td select:focus {
+  background: #eff6ff !important;
+  outline: 2px solid #2563eb !important;
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+#log-modal .mbody { background: #f8fafc; }
+#log-modal .modal { background: #fff; color: #0f172a; }
+#log-modal .mhead { background: #fff; border-bottom: 1px solid #e2e8f0; }
+#log-modal .mtitle { color: #0f172a; }
+#log-modal .mfoot { background: #f8fafc; border-top: 1px solid #e2e8f0; }
 </style>
 </head>
 <body>
@@ -1586,36 +1629,36 @@ function lgColW(col){
 }
 function lgStatusBadge(s){
   if(!s)return`<span style="color:#94a3b8;font-size:11px">—</span>`;
-  if(s==='DONE')return`<span style="background:#14532d;color:#86efac;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700">DONE</span>`;
+  if(s==='DONE')return`<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">DONE</span>`;
   if(s&&s.startsWith('ERR'))return`<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px">${s}</span>`;
   return`<span style="background:#f1f5f9;color:#64748b;padding:2px 8px;border-radius:4px;font-size:11px">${s}</span>`;
 }
 function buildLogisticsView(){
   const sheets=getAccessibleSheets(),sheet=_logisticsSheet||sheets[0],cfg=LOGISTICS_SHEETS[sheet],rows=_logisticsData.slice(1);
-  return`<div style="display:flex;flex-direction:column;gap:14px;background:#f0fdf4;padding:16px;border-radius:10px;color:#0f172a;font-size:14px">
+  return`<div style="display:flex;flex-direction:column;gap:14px;background:#f0fdf4;padding:16px;border-radius:10px">
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-    ${sheets.map(s=>`<button onclick="switchLogisticsSheet('${s}')" style="padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:${s===sheet?'#14532d':'#dcfce7'};color:${s===sheet?'#fff':'#166534'}">${s}</button>`).join('')}
+    ${sheets.map(s=>`<button onclick="switchLogisticsSheet('${s}')" style="padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:${s===sheet?'#16a34a':'#dcfce7'};color:${s===sheet?'#fff':'#166534'}">${s}</button>`).join('')}
     <span style="margin-left:auto;font-size:11px;color:#94a3b8"><span style="display:inline-block;width:10px;height:10px;background:#fce7f3;border:1px solid #f9a8d4;border-radius:2px;margin-right:4px"></span>Quan trọng</span>
   </div>
   <div style="display:flex;gap:8px">
-    <button onclick="openMiniSheet('${sheet}')" style="padding:7px 14px;border-radius:6px;border:none;background:#16a34a;color:#fff;font-size:13px;font-weight:600;cursor:pointer">+ Thêm dòng</button>
+    <button class="btn btn-p" onclick="openMiniSheet('${sheet}')" style="font-size:13px;background:#16a34a;border-color:#16a34a">+ Thêm dòng</button>
     <button onclick="loadLogistics()" style="padding:7px 14px;border-radius:6px;border:1px solid #bbf7d0;background:#fff;color:#166534;font-size:13px;cursor:pointer">↻ Tải lại</button>
     <span style="margin-left:auto;font-size:12px;color:#94a3b8;align-self:center">${rows.length} dòng</span>
   </div>
-  <div style="border-radius:8px;border:1px solid #bbf7d0;overflow:hidden;background:#fff">
+  <div style="border-radius:8px;border:1px solid #bbf7d0;overflow:hidden">
     <table style="width:100%;border-collapse:collapse;background:#fff;table-layout:fixed">
-      <thead><tr style="background:#f0fdf4 !important">
-        <th style="width:36px !important;padding:8px !important;background:#f0fdf4 !important;color:#94a3b8 !important;font-size:11px !important;border-bottom:2px solid #bbf7d0 !important">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th class="${imp?'lg-imp':''}" style="width:${lgColW(c)}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
+      <thead><tr>
+        <th style="width:36px;padding:8px;background:#f0fdf4;color:#94a3b8;font-size:11px">#</th>
+        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="width:${lgColW(c)};padding:8px 10px;font-size:11px;font-weight:700;text-align:left;background:${imp?'#fce7f3':'#f0fdf4'};color:${imp?'#be185d':'#166534'};border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
         <th style="width:40px;background:#f0fdf4"></th>
       </tr></thead>
       <tbody>
         ${rows.length===0?`<tr><td colspan="${cfg.cols.length+2}" style="text-align:center;padding:28px;color:#94a3b8">Không có dữ liệu</td></tr>`:
-          rows.map((row,i)=>`<tr style="border-bottom:1px solid #f0fdf4;background:${i%2===0?'#fff':'#f8fffe'} !important" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background=''">
+          rows.map((row,i)=>`<tr style="border-bottom:1px solid #f0fdf4;background:${i%2===0?'#fff':'#f0fdf4'}" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='${i%2===0?'#fff':'#f0fdf4'}'">
             <td style="text-align:center;font-size:11px;color:#94a3b8;padding:8px 4px">${i+1}</td>
             ${cfg.cols.map((c,ci)=>{const val=row[ci]||'',imp=cfg.important.includes(c);
               if(c==='STATUS')return`<td style="padding:8px 10px;text-align:center">${lgStatusBadge(val)}</td>`;
-              return`<td class="${imp?'lg-imp':''}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${val}">${val}</td>`;}).join('')}
+              return`<td style="padding:8px 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${imp?'#15803d':'#64748b'};font-weight:${imp?600:400}" title="${val}">${val}</td>`;}).join('')}
             <td style="text-align:center"><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:13px;padding:2px 6px;opacity:.5;border-radius:4px" onmouseover="this.style.opacity=1;this.style.background='#fee2e2'" onmouseout="this.style.opacity=.5;this.style.background='none'">✕</button></td>
           </tr>`).join('')}
       </tbody>
