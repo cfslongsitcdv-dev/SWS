@@ -1626,20 +1626,20 @@ function buildLogisticsView(){
     <button onclick="loadLogistics()" style="padding:7px 14px;border-radius:6px;border:1px solid #bbf7d0;background:#fff;color:#166534;font-size:13px;cursor:pointer">↻ Tải lại</button>
     <span style="margin-left:auto;font-size:12px;color:#94a3b8;align-self:center">${rows.length} dòng</span>
   </div>
-  <div style="border-radius:8px;border:1px solid #bbf7d0;overflow:hidden">
-    <table style="width:100%;border-collapse:collapse;background:#fff;table-layout:fixed">
+  <div style="border-radius:8px;border:1px solid #bbf7d0;overflow:hidden;background:#fff">
+    <table style="width:100%;border-collapse:collapse;background:#fff !important;table-layout:fixed">
       <thead><tr>
         <th style="width:36px;padding:8px;background:#f0fdf4;color:#94a3b8;font-size:11px">#</th>
-        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="width:${lgColW(c)};padding:8px 10px;font-size:11px;font-weight:700;text-align:left;background:${imp?'#fce7f3':'#f0fdf4'};color:${imp?'#be185d':'#64748b'};border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'}">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
+        ${cfg.cols.map(c=>{const imp=cfg.important.includes(c);return`<th style="width:${lgColW(c)};padding:8px 10px;font-size:11px;font-weight:700;text-align:left;background:${imp?'#fce7f3':'#f0fdf4'} !important;color:${imp?'#be185d':'#64748b'} !important;border-bottom:2px solid ${imp?'#f9a8d4':'#bbf7d0'} !important">${c}${cfg.readonly.includes(c)?' 🔒':''}</th>`;}).join('')}
         <th style="width:40px;background:#f0fdf4"></th>
       </tr></thead>
       <tbody>
         ${rows.length===0?`<tr><td colspan="${cfg.cols.length+2}" style="text-align:center;padding:28px;color:#94a3b8">Không có dữ liệu</td></tr>`:
-          rows.map((row,i)=>`<tr style="border-bottom:1px solid #f0fdf4;background:${i%2===0?'#fff':'#f8fffe'}" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background=''">
+          rows.map((row,i)=>`<tr style="border-bottom:1px solid #f0fdf4;background:${i%2===0?'#fff':'#f8fffe'} !important" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background=''">
             <td style="text-align:center;font-size:11px;color:#94a3b8;padding:8px 4px">${i+1}</td>
             ${cfg.cols.map((c,ci)=>{const val=row[ci]||'',imp=cfg.important.includes(c);
               if(c==='STATUS')return`<td style="padding:8px 10px;text-align:center">${lgStatusBadge(val)}</td>`;
-              return`<td style="padding:8px 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${imp?'#be185d':'#64748b'};font-weight:${imp?600:400}" title="${val}">${val}</td>`;}).join('')}
+              return`<td style="padding:8px 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${imp?'#be185d':'#64748b'} !important;font-weight:${imp?600:400}" title="${val}">${val}</td>`;}).join('')}
             <td style="text-align:center"><button onclick="deleteLogisticsRow(${i+1})" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:13px;padding:2px 6px;opacity:.5;border-radius:4px" onmouseover="this.style.opacity=1;this.style.background='#fee2e2'" onmouseout="this.style.opacity=.5;this.style.background='none'">✕</button></td>
           </tr>`).join('')}
       </tbody>
