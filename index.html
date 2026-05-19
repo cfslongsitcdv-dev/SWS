@@ -247,7 +247,7 @@ function openMiniSheet(sheet){
   const typeOpts=['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
   const buildRows=(s,n)=>Array.from({length:n},(_,ri)=>{const r=s+ri;return`<tr id="msr-row-${r}">${inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';
     if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${r}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;
-    return`<td class="msr-td" data-row="${r}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${r}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrKeyNav(event,${r},${ci},${inputCols.length})"></td>`;}).join('')}</tr>`;}).join('');
+    return`<td class="msr-td" data-row="${r}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${r}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrCellKeydown(event,${r},${ci},${inputCols.length})" onpaste="msrHandlePaste(event)"></td>`;}).join('')}</tr>`;}).join('');
   document.getElementById('log-modal-title').textContent='Thêm dòng — '+sheet;
   document.getElementById('log-modal-body').innerHTML=`<div style="display:flex;flex-direction:column;gap:10px;background:#f8fafc;padding:4px">
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px;font-size:12px;color:#166534">
@@ -271,7 +271,7 @@ function openMiniSheet(sheet){
     tbl.addEventListener('mouseover',msrMouseOver);
     document.addEventListener('mouseup',msrMouseUp);
     document.addEventListener('keydown',msrGlobalKeydown);
-    document.addEventListener('paste',msrHandlePaste);
+    // paste handled directly on each input via onpaste attribute
     const first=document.querySelector('.msr-cell');if(first)first.focus();
   },100);
   document.getElementById('log-modal').style.display='flex';
@@ -288,6 +288,14 @@ function msrGlobalKeydown(e){
   if((e.key==='Delete'||e.key==='Backspace')&&_msrSelected.size>1){e.preventDefault();_msrSelected.forEach(k=>{const[r,c]=k.split('-').map(Number),inp=document.querySelector(`input.msr-cell[data-row="${r}"][data-col="${c}"]`);if(inp)inp.value='';});}
   if(e.key==='Escape')msrClearSelection();
 }
+function msrCellKeydown(e,ri,ci,tot){
+  if((e.key==='Delete'||e.key==='Backspace')&&_msrSelected&&_msrSelected.size>1){
+    e.preventDefault();
+    _msrSelected.forEach(k=>{const[r,c]=k.split('-').map(Number),inp=document.querySelector(`input.msr-cell[data-row="${r}"][data-col="${c}"]`);if(inp)inp.value='';});
+    return;
+  }
+  msrKeyNav(e,ri,ci,tot);
+}
 function msrKeyNav(e,ri,ci,tot){
   if(e.key==='Tab'){e.preventDefault();const n=document.querySelector(`[data-row="${ri}"][data-col="${ci+1}"]`)||document.querySelector(`[data-row="${ri+1}"][data-col="0"]`);if(n)n.focus();}
   if(e.key==='Enter'){e.preventDefault();const n=document.querySelector(`input.msr-cell[data-row="${ri+1}"][data-col="${ci}"]`);if(n)n.focus();}
@@ -295,13 +303,12 @@ function msrKeyNav(e,ri,ci,tot){
 function msrAddRows(){
   const cfg=window._msrCfg,inputCols=window._msrCols,start=window._msrRowCount,tbody=document.getElementById('msr-tbody');
   const typeOpts=['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
-  for(let ri=start;ri<start+5;ri++){const tr=document.createElement('tr');tr.id=`msr-row-${ri}`;tr.innerHTML=inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${ri}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;return`<td class="msr-td" data-row="${ri}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrKeyNav(event,${ri},${ci},${inputCols.length})"></td>`;}).join('');tbody.appendChild(tr);}
+  for(let ri=start;ri<start+5;ri++){const tr=document.createElement('tr');tr.id=`msr-row-${ri}`;tr.innerHTML=inputCols.map((col,ci)=>{const imp=cfg.important.includes(col),bg=imp?'#fff0f8':'#fff';if(col==='TYPE')return`<td style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><select class="msr-cell" data-row="${ri}" data-col="${ci}" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 4px;outline:none">${typeOpts}</select></td>`;return`<td class="msr-td" data-row="${ri}" data-col="${ci}" style="background:${bg};border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:0"><input class="msr-cell" data-row="${ri}" data-col="${ci}" type="text" style="width:100%;background:transparent;border:none;color:#0f172a;font-size:12px;padding:5px 6px;outline:none;box-sizing:border-box" onkeydown="msrCellKeydown(event,${ri},${ci},${inputCols.length})" onpaste="msrHandlePaste(event)"></td>`;}).join('');tbody.appendChild(tr);}
   window._msrRowCount=start+5;
 }
 function msrHandlePaste(e){
-  const modal=document.getElementById('log-modal');if(!modal||modal.style.display==='none')return;
   e.preventDefault();const text=e.clipboardData.getData('text/plain'),lines=text.split('\n').filter(l=>l.trim());
-  const el=document.activeElement;
+  const el=e.target;
   const sr=+(el.dataset&&el.dataset.row)||0,sc=+(el.dataset&&el.dataset.col)||0;
   while(window._msrRowCount<sr+lines.length)msrAddRows();
   lines.forEach((line,li)=>line.split('\t').forEach((val,ci)=>{const idx=sc+ci;if(idx>=window._msrCols.length)return;const inp=document.querySelector(`[data-row="${sr+li}"][data-col="${idx}"]`);if(inp)inp.value=val.trim();}));
@@ -316,8 +323,7 @@ async function msrSave(){
     try{const res=await gasCall({action:'addRow',sheet,rowData:JSON.stringify(rowData)});if(res.ok)saved++;}catch(err){}
   }
   btn.disabled=false;
-  document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.removeEventListener('paste',msrHandlePaste);
-  document.getElementById('log-modal').style.display='none';
+  document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none';
   delete _logisticsCache[sheet];await loadLogistics();
   if(saved>0)showNotif('n-ok',`✅ Đã lưu ${saved} dòng vào ${sheet}`);
 }
@@ -451,11 +457,11 @@ async function deleteLogisticsRow(rowIndex) {
   <div class="modal" style="width:min(95vw,900px);max-height:90vh;display:flex;flex-direction:column">
     <div class="mhead">
       <span class="mtitle" id="log-modal-title">Thêm dòng</span>
-      <button class="mclose" onclick="document.removeEventListener('paste',msrHandlePaste);document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none'">×</button>
+      <button class="mclose" onclick="document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none'">×</button>
     </div>
     <div class="mbody" id="log-modal-body" style="overflow-y:auto;flex:1"></div>
     <div class="mfoot">
-      <button class="btn btn-g" onclick="document.removeEventListener('paste',msrHandlePaste);document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none'">Hủy</button>
+      <button class="btn btn-g" onclick="document.removeEventListener('mouseup',msrMouseUp);document.removeEventListener('keydown',msrGlobalKeydown);document.getElementById('log-modal').style.display='none'">Hủy</button>
       <button class="btn btn-p" id="log-modal-ok">Thêm</button>
     </div>
   </div>
