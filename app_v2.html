@@ -1080,8 +1080,12 @@ async function loadHistory(){
     const sc=s.status==='confirmed'?'b-ok':s.status==='rejected'?'b-err':s.status==='revoked'?'b-revoked':'b-wait';
     const sl=s.status==='confirmed'?'Đã xác nhận':s.status==='rejected'?'Từ chối':s.status==='revoked'?'Thu hồi':'Đang chờ';
     // Show each item line
-    const itemLines=s.items.map(it=>`<div style="font-family:var(--mono);font-size:11px;line-height:1.8">${it.container_no} · ${it.seal_brand} · ${it.seal_code}</div>`).join('');
-    const canRevoke=(CU.role==='admin'||CU.dept==='BPTT')&&s.status==='confirmed';
+    const itemLines=s.items.map(it=>{
+      const ist=it.item_status||'pending';
+      const canRevokeItem=(CU.role==='admin'||CU.dept==='BPTT')&&ist==='confirmed';
+      const ibadge=ist==='confirmed'?'':'revoked'===ist?'<span style="color:#f87171;font-size:10px"> ↩Thu hồi</span>':'';
+      return`<div style="font-family:var(--mono);font-size:11px;line-height:2;display:flex;align-items:center;gap:6px">${it.container_no} · ${it.seal_brand} · ${it.seal_code}${ibadge}${canRevokeItem?`<button onclick="revokeItem('${it.id}','${it.seal_code}')" style="padding:1px 7px;border-radius:4px;border:1px solid rgba(248,113,113,0.4);background:rgba(248,113,113,0.08);color:#f87171;font-size:10px;cursor:pointer;margin-left:2px">↩</button>`:''}</div>`;
+    }).join('');
     return `<tr>
       <td>${fmt(s.sent_at)}</td>
       <td style="font-family:var(--sans)">${s.sender?.display_name||'—'}<br><span style="font-size:10px;color:var(--txt3)">${s.sender?.dept||''}</span></td>
@@ -1090,16 +1094,17 @@ async function loadHistory(){
       <td style="font-family:var(--sans);max-width:120px;white-space:normal">${s.note||'—'}</td>
       <td><span class="badge ${sc}">${sl}</span></td>
       <td>${s.confirmed_at?fmt(s.confirmed_at):'—'}</td>
-      <td>${canRevoke?`<button onclick="revokeSession('${s.id}')" style="padding:3px 9px;border-radius:5px;border:1px solid rgba(248,113,113,0.4);background:rgba(248,113,113,0.08);color:#f87171;font-size:11px;font-weight:600;cursor:pointer">↩ Thu hồi</button>`:'—'}</td>
+      <td>—</td>
     </tr>`;
   }).join('');
 }
 
-async function revokeSession(id){
-  if(!confirm('Thu hồi phiếu này? Hành động không thể hoàn tác.'))return;
-  const{error}=await SB.from('handover_sessions').update({status:'revoked',revoked_at:vnNow()}).eq('id',id);
+async function revokeItem(itemId,sealCode){
+  if(!confirm('Thu hồi chì '+sealCode+'? Chì sẽ về trạng thái còn tồn và có thể dùng lại.'))return;
+  const{error}=await SB.from('handover_items').update({item_status:'revoked',revoked_at:vnNow()}).eq('id',itemId);
   if(error){alert('Lỗi: '+error.message);return;}
-  showNotif(document.getElementById('notif'),'n-ok','✅ Đã thu hồi phiếu');
+  await SB.from('seals').update({status:'available'}).eq('seal_code',sealCode);
+  showNotif(document.getElementById('notif'),'n-ok','✅ Đã thu hồi chì '+sealCode);
   loadHistory();
 }
 function clearHistSearch(){
