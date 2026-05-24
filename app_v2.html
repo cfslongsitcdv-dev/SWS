@@ -1002,9 +1002,11 @@ async function loadRejected(){
 }
 
 async function confirmSessionId(sid){
-  const {data:items}=await SB.from('handover_items').select('seal_code').eq('session_id',sid);
+  const {data:items}=await SB.from('handover_items').select('id,seal_code').eq('session_id',sid);
   const codes=(items||[]).map(i=>i.seal_code);
+  const ids=(items||[]).map(i=>i.id);
   await SB.from('handover_sessions').update({status:'confirmed',confirmed_at:vnNow()}).eq('id',sid);
+  if(ids.length)await SB.from('handover_items').update({item_status:'confirmed',item_confirmed_at:vnNow()}).in('id',ids);
   await SB.from('seals').update({status:'used'}).in('seal_code',codes);
   loadPending();loadStats();playBeep(true);
 }
