@@ -339,7 +339,7 @@ function openMiniSheet(sheet) {
     return '100px';
   };
 
-  const typeOpts = ['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+  const typeOpts = ['','20GP','40GP','40HC','45HC','20HC','20RF','40HR','45HR'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
 
   // Build 5 empty rows
   const buildRows = (n=5) => Array.from({length:n}, (_,ri)=>`
@@ -407,7 +407,7 @@ function msrAddRows() {
   const cfg   = window._msrCfg;
   const inputCols = window._msrCols;
   const start = window._msrRowCount;
-  const typeOpts = ['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+  const typeOpts = ['','20GP','40GP','40HC','45HC','20HC','20RF','40HR','45HR'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
 
   for (let ri = start; ri < start+5; ri++) {
     const tr = document.createElement('tr');
