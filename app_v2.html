@@ -768,16 +768,15 @@ function showTab(id){
 
 // ── STATS ──
 async function loadStats(){
-  const {data}=await SB.from('seals').select('status');if(!data)return;
-  const av=data.filter(s=>s.status==='available').length;
-  const pe=data.filter(s=>s.status==='pending').length;
-  const us=data.filter(s=>s.status==='used').length;
-  ['avail','pending','used','total'].forEach(k=>{
-    const el=document.getElementById('s-'+k)||document.getElementById('sl-'+k);
-  });
+  const [r1,r2,r3]=await Promise.all([
+    SB.from('seals').select('*',{count:'exact',head:true}).eq('status','available'),
+    SB.from('seals').select('*',{count:'exact',head:true}).eq('status','pending'),
+    SB.from('seals').select('*',{count:'exact',head:true}).eq('status','used'),
+  ]);
+  const av=r1.count||0, pe=r2.count||0, us=r3.count||0, total=av+pe+us;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
-  set('s-avail',av);set('s-pending',pe);set('s-used',us);set('s-total',data.length);
-  set('sl-avail',av);set('sl-pending',pe);set('sl-used',us);set('sl-total',data.length);
+  set('s-avail',av);set('s-pending',pe);set('s-used',us);set('s-total',total);
+  set('sl-avail',av);set('sl-pending',pe);set('sl-used',us);set('sl-total',total);
 }
 
 // ── RECEIVERS ──
@@ -1774,7 +1773,7 @@ function openMiniSheet(sheet) {
     return '100px';
   };
 
-  const typeOpts = ['','20GP','40GP','40HC','45HC','20HC','20RF','40HR','45HR'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+  const typeOpts = ['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
 
   // Build 5 empty rows
   const buildRows = (n=5) => Array.from({length:n}, (_,ri)=>`
@@ -1842,7 +1841,7 @@ function msrAddRows() {
   const cfg   = window._msrCfg;
   const inputCols = window._msrCols;
   const start = window._msrRowCount;
-  const typeOpts = ['','20GP','40GP','40HC','45HC','20HC','20RF','40HR','45HR'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+  const typeOpts = ['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
 
   for (let ri = start; ri < start+5; ri++) {
     const tr = document.createElement('tr');
