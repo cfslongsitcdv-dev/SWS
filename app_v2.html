@@ -1689,6 +1689,7 @@ function buildLogisticsView() {
   const sheets = getAccessibleSheets();
   const sheet = _logisticsSheet || sheets[0];
   const cfg = LOGISTICS_SHEETS[sheet];
+  const headerRow = _logisticsData[0]||[];
   const rows = _logisticsData.slice(1);
 
   // Column widths
@@ -1745,7 +1746,7 @@ function buildLogisticsView() {
           : rows.map((row,i)=>`<tr style="transition:background .1s" onmouseover="this.style.background='var(--s3)'" onmouseout="this.style.background=''">
               <td style="color:var(--txt3);font-size:11px;text-align:center">${i+1}</td>
               ${cfg.cols.map((c,ci)=>{
-                const val = row[ci]||'';
+                const sheetColIdx=headerRow.indexOf(c);const val=sheetColIdx>=0?(row[sheetColIdx]||''):row[ci]||'';
                 const imp = cfg.important.includes(c);
                 if (c === 'STATUS') return `<td style="text-align:center">${statusBadge(val)}</td>`;
                 return `<td style="max-width:${colWidth(c)};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${imp?'color:#fce7f3;font-weight:500':''}" title="${val}">${val}</td>`;
@@ -1773,7 +1774,7 @@ function openMiniSheet(sheet) {
     return '100px';
   };
 
-  const typeOpts = ['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+  const typeOpts = ['','20GP','40GP','40HC','45HC','20HC','20RF','40HR','45HR'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
 
   // Build 5 empty rows
   const buildRows = (n=5) => Array.from({length:n}, (_,ri)=>`
@@ -1841,7 +1842,7 @@ function msrAddRows() {
   const cfg   = window._msrCfg;
   const inputCols = window._msrCols;
   const start = window._msrRowCount;
-  const typeOpts = ['','40HC','20GP','45HC','40GP'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
+  const typeOpts = ['','20GP','40GP','40HC','45HC','20HC','20RF','40HR','45HR'].map(t=>`<option value="${t}">${t||'--'}</option>`).join('');
 
   for (let ri = start; ri < start+5; ri++) {
     const tr = document.createElement('tr');
@@ -2065,7 +2066,7 @@ function buildLogisticsView() {
           rows.map((row,i)=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.05);background:${i%2===1?'rgba(255,255,255,0.03)':'#1a1f2e'}">
             <td style="color:#64748b;font-size:11px;padding:9px 12px">${i+1}</td>
             ${cfg.cols.map((c,ci)=>{
-              const val = row[ci]||'';
+              const sheetColIdx=headerRow.indexOf(c);const val=sheetColIdx>=0?(row[sheetColIdx]||''):row[ci]||'';
               if(c==='STATUS') return `<td>${statusBadge(val)}</td>`;
               return `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-size:13px;padding:9px 12px;background:inherit" title="${val}">${val}</td>`;
             }).join('')}
