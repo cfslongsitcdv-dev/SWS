@@ -598,6 +598,7 @@ function buildLogisticsView() {
     return '<span style="background:var(--s3);color:var(--txt2);padding:2px 8px;border-radius:4px;font-size:11px">'+s+'</span>';
   };
 
+  const headerRow = _logisticsData[0]||[];
   const rows = _logisticsData.slice(1); // bỏ header
 
   return `
