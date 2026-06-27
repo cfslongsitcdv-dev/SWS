@@ -1142,10 +1142,13 @@ async function addSeals(){
   if(from&&to){
     // Parse range e.g. H/25.12401 to H/25.12500
     const prefix=from.substring(0,from.lastIndexOf('.')+1);
-    const n1=parseInt(from.substring(from.lastIndexOf('.')+1));
-    const n2=parseInt(to.substring(to.lastIndexOf('.')+1));
+    const suffix1=from.substring(from.lastIndexOf('.')+1);
+    const suffix2=to.substring(to.lastIndexOf('.')+1);
+    const n1=parseInt(suffix1);
+    const n2=parseInt(suffix2);
+    const padLen=suffix1.length; // giữ nguyên độ dài số gốc
     if(isNaN(n1)||isNaN(n2)||n2<n1){showNotif(notif,'n-err','Khoảng chì không hợp lệ');return}
-    for(let i=n1;i<=n2;i++)codes.push(prefix+i);
+    for(let i=n1;i<=n2;i++)codes.push(prefix+String(i).padStart(padLen,'0'));
   }
   if(manual)codes=[...codes,...manual.split('\n').map(l=>l.trim()).filter(Boolean)];
   if(!codes.length){showNotif(notif,'n-warn','Nhập ít nhất một mã');return}
