@@ -859,13 +859,18 @@ document.getElementById('computeBtn').addEventListener('click', ()=>{
   const result = packContainer(container, items);
 
   if(!scene) initScene(), attachControls();
+  drawContainer(container);
+  drawBoxes(result.placed);
+  containerState = {container, result};
+  showContainerResults(result, container);
+});
+
+function showContainerResults(result, container){
+  const nav = document.getElementById('palletNav');
+  if(nav) nav.style.display = 'none';
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('viewerHint').style.display = 'block';
   document.getElementById('toggleBtn').style.display = 'block';
-
-  drawContainer(container);
-  drawBoxes(result.placed);
-
   // ---- results panel ----
   const resEl = document.getElementById('results');
   resEl.classList.add('show');
@@ -932,7 +937,7 @@ document.getElementById('computeBtn').addEventListener('click', ()=>{
     `;
     tbody.appendChild(tr);
   });
-});
+}
 
 document.getElementById('toggleBtn').addEventListener('click', (e)=>{
   containerGroup.visible = !containerGroup.visible;
@@ -1117,8 +1122,9 @@ function computePallet(){
     maxW:+document.getElementById('pMaxW').value||1000
   };
   if(items.length===0){ alert('Chưa có lô hàng nào!'); return; }
-  if(!scene) initScene();
+  if(!scene){ initScene(); attachControls(); }
   const res = packPallet(palletDims, items);
+  palletState = {res, palletDims};
   showPalletResults(res);
 }
 
@@ -1128,6 +1134,8 @@ function computePallet(){
 let currentMode = 'container';
 let currentPalletIdx = 0;
 let palletResults = [];
+let containerState = null; // lưu kết quả container
+let palletState = null;    // lưu kết quả pallet
 
 function switchMode(mode){
   currentMode = mode;
@@ -1143,6 +1151,32 @@ function switchMode(mode){
   document.getElementById('emptyState').querySelector('p').textContent = isContainer
     ? 'Nhập kích thước container và các lô hàng ở bên trái, sau đó bấm "Tính toán xếp hàng" để xem layout 3D.'
     : 'Nhập kích thước pallet và danh sách carton, sau đó bấm "Tính toán Pallet" để xem kết quả 3D.';
+  // Restore state của mode đang chuyển sang
+  const nav = document.getElementById('palletNav');
+  if(isContainer){
+    if(nav) nav.style.display = 'none';
+    if(containerState && scene){
+      drawContainer(containerState.container);
+      drawBoxes(containerState.result.placed);
+      showContainerResults(containerState.result, containerState.container);
+    } else {
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'flex';
+      document.getElementById('viewerHint').style.display = 'none';
+      document.getElementById('toggleBtn').style.display = 'none';
+      if(scene) clearScene();
+    }
+  } else {
+    document.getElementById('toggleBtn').style.display = 'none';
+    if(palletState && scene){
+      showPalletResults(palletState.res);
+    } else {
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'flex';
+      document.getElementById('viewerHint').style.display = 'none';
+      if(scene) clearScene();
+    }
+  }
 }
 
 function packPallet(palletDims, rawItems){
