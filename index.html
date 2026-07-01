@@ -158,6 +158,7 @@ function switchMainTab(tab) {
   document.getElementById('view-calculator').style.display = 'none';
   document.getElementById('views').style.display = tab==='bangiao' ? 'block' : 'none';
   if(tab==='logistics') {
+    document.getElementById('views').style.display = 'block';
     let el = document.getElementById('view-logistics');
     if(!el){ el=document.createElement('div'); el.id='view-logistics'; document.getElementById('views').appendChild(el); }
     document.querySelectorAll('[id^="view-"]').forEach(e=>e.style.display='none');
