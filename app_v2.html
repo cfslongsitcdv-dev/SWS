@@ -336,6 +336,10 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
       style="padding:12px 20px;border:none;border-bottom:3px solid transparent;cursor:pointer;font-size:13px;font-weight:600;background:transparent;color:var(--txt3);margin-bottom:-2px">
       🚛 Logistics
     </button>
+    <button id="maintab-calculator" onclick="switchMainTab('calculator')"
+      style="padding:12px 20px;border:none;border-bottom:3px solid transparent;cursor:pointer;font-size:13px;font-weight:600;background:transparent;color:var(--txt3);margin-bottom:-2px;display:none">
+      📦 Calculator
+    </button>
   </div>
   <!-- Sub tabbar for bangiao -->
   <div id="subtabbar-bangiao">
@@ -343,6 +347,10 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
   </div>
   <!-- Logistics view -->
   <div id="subtabbar-logistics" style="display:none"></div>
+  <div id="subtabbar-calculator" style="display:none"></div>
+  <div id="view-calculator" style="display:none;width:100%;height:calc(100vh - 90px)">
+    <iframe src="/container-loading-calculator.html" style="width:100%;height:100%;border:none;display:block" title="Calculator"></iframe>
+  </div>
   <div id="views"></div>
 </div>
 
@@ -519,7 +527,6 @@ function buildTabs(){
   if(CU.dept==='BPTT'||CU.role==='admin')tabs.push({id:'send',label:'Tạo phiếu'});
   if(CU.dept==='BPHT'||CU.role==='admin')tabs.push({id:'receive',label:'Nhận phiếu',badge:true});
   tabs.push({id:'history',label:'Lịch sử'});
-  if(CU.dept==='BPTT'||CU.role==='admin')tabs.push({id:'container',label:'📦 Đóng Container'});
   if(CU.role==='admin')tabs.push({id:'seals',label:'Danh sách chì'},{id:'reports',label:'Báo cáo'},{id:'admin',label:'Quản trị'});
   tabs.forEach((t,i)=>{
     const btn=document.createElement('button');
@@ -535,6 +542,9 @@ function buildTabs(){
     vw.appendChild(div);
   });
   if(tabs[0])renderView(tabs[0].id);
+  // Hiện tab Calculator nếu là BPTT hoặc admin
+  const calcBtn=document.getElementById('maintab-calculator');
+  if(calcBtn&&(CU.dept==='BPTT'||CU.role==='admin'))calcBtn.style.display='block';
 }
 
 function buildView(id){
@@ -613,7 +623,6 @@ function buildView(id){
         </div>
       </div>
     </div>`;
-  if(id==='container')return `<div style="width:100%;height:calc(100vh - 120px);padding:0;margin:0"><iframe src="/container-loading-calculator.html" style="width:100%;height:100%;border:none;display:block" title="Tính toán đóng Container"></iframe></div>`;
   if(id==='seals')return `
     <div class="main">
       <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
@@ -730,24 +739,23 @@ function buildView(id){
 
 
 function switchMainTab(tab) {
-  const isBangiao = tab === 'bangiao';
-  document.getElementById('subtabbar-bangiao').style.display = isBangiao ? 'block' : 'none';
-  document.getElementById('subtabbar-logistics').style.display = isBangiao ? 'none' : 'block';
-  document.getElementById('maintab-bangiao').style.color = isBangiao ? 'var(--acc)' : 'var(--txt3)';
-  document.getElementById('maintab-bangiao').style.borderBottomColor = isBangiao ? 'var(--acc)' : 'transparent';
-  document.getElementById('maintab-logistics').style.color = !isBangiao ? 'var(--acc)' : 'var(--txt3)';
-  document.getElementById('maintab-logistics').style.borderBottomColor = !isBangiao ? 'var(--acc)' : 'transparent';
-  if (!isBangiao) {
-    // Show logistics content in views
+  const tabs = ['bangiao','logistics','calculator'];
+  tabs.forEach(t => {
+    const btn = document.getElementById('maintab-'+t);
+    if(btn) { btn.style.color = t===tab ? 'var(--acc)' : 'var(--txt3)'; btn.style.borderBottomColor = t===tab ? 'var(--acc)' : 'transparent'; }
+  });
+  document.getElementById('subtabbar-bangiao').style.display = tab==='bangiao' ? 'block' : 'none';
+  document.getElementById('subtabbar-logistics').style.display = 'none';
+  document.getElementById('view-calculator').style.display = 'none';
+  document.getElementById('views').style.display = tab==='bangiao' ? 'block' : 'none';
+  if(tab==='logistics') {
     let el = document.getElementById('view-logistics');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'view-logistics';
-      document.getElementById('views').appendChild(el);
-    }
-    document.querySelectorAll('[id^="view-"]').forEach(e => e.style.display = 'none');
-    el.style.display = 'block';
+    if(!el){ el=document.createElement('div'); el.id='view-logistics'; document.getElementById('views').appendChild(el); }
+    document.querySelectorAll('[id^="view-"]').forEach(e=>e.style.display='none');
+    el.style.display='block';
     loadLogistics();
+  } else if(tab==='calculator') {
+    document.getElementById('view-calculator').style.display = 'block';
   }
 }
 
@@ -758,7 +766,6 @@ function renderView(id){
   if(id==='seals')loadSealList();
   if(id==='admin'){loadUserList();loadCompleted();loadLicenseList();}
   if(id==='logistics')loadLogistics();
-  if(id==='container'){}
 }
 
 function showTab(id){

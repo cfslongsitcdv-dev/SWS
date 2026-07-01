@@ -416,9 +416,9 @@ const COLORS = ["#ff8a3d","#2dd4bf","#60a5fa","#f472b6","#a78bfa","#fbbf24","#34
 
 let itemSeq = 0;
 let variantSeq = 0;
-function newVariant(L,W,H,wt,qty,rotMode){
+function newVariant(L,W,H,wt,qty,rotMode,nonStack,topLoad){
   variantSeq++;
-  return {vid:variantSeq, L,W,H, weight:wt, qty, rotMode: rotMode||'horizontal'};
+  return {vid:variantSeq, L,W,H, weight:wt, qty, rotMode: rotMode||'horizontal', nonStack:nonStack||false, topLoad:topLoad||false};
 }
 function newItem(name, variants){
   itemSeq++;
@@ -494,6 +494,10 @@ function renderItems(){
         <label class="rot-row"><input type="radio" name="rot-${v.vid}" data-vf="rotMode" value="none" ${v.rotMode==='none'?'checked':''}> Không xoay</label>
         <label class="rot-row"><input type="radio" name="rot-${v.vid}" data-vf="rotMode" value="horizontal" ${v.rotMode==='horizontal'?'checked':''}> Xoay ngang <span class="rot-hint">(đổi Dài↔Rộng, giữ nguyên Cao)</span></label>
         <label class="rot-row"><input type="radio" name="rot-${v.vid}" data-vf="rotMode" value="free" ${v.rotMode==='free'?'checked':''}> Xoay tự do <span class="rot-hint">(carton, khối đặc — lật được 6 hướng)</span></label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <label class="rot-row" style="margin:0"><input type="checkbox" data-vf="nonStack" ${v.nonStack?'checked':''}> <b>Non-stack</b> <span class="rot-hint">(không ai đè lên trên)</span></label>
+          <label class="rot-row" style="margin:0"><input type="checkbox" data-vf="topLoad" ${v.topLoad?'checked':''}> <b>Top-load</b> <span class="rot-hint">(chỉ đặt trên cùng)</span></label>
+        </div>
       </div>
     `).join('<div class="variant-divider"></div>');
 
@@ -522,11 +526,12 @@ function renderItems(){
       row.querySelectorAll('[data-vf]').forEach(inp=>{
         inp.addEventListener('change', ()=>{
           const f = inp.dataset.vf;
-          v[f] = (inp.type==='number' ? (+inp.value||0) : inp.value);
+          v[f] = (inp.type==='number' ? (+inp.value||0) : inp.type==='checkbox' ? inp.checked : inp.value);
         });
         inp.addEventListener('input', ()=>{
           const f = inp.dataset.vf;
           if(inp.type==='number') v[f] = +inp.value||0;
+          else if(inp.type==='checkbox') v[f] = inp.checked;
         });
       });
       const delBtn = row.querySelector('.del-variant');
@@ -570,13 +575,20 @@ function packContainer(container, rawItems){
       for(let i=0;i<v.qty;i++){
         units.push({
           srcId: it.id, name: it.name, color: it.color,
-          L: v.L, W: v.W, H: v.H, weight: v.weight, rotMode: v.rotMode
+          L: v.L, W: v.W, H: v.H, weight: v.weight, rotMode: v.rotMode,
+          nonStack: v.nonStack||false, topLoad: v.topLoad||false
         });
       }
     });
   });
   // sort largest volume first (best practice for bin packing heuristics)
-  units.sort((a,b)=> (b.L*b.W*b.H) - (a.L*a.W*a.H));
+  // Sort: kiện lớn trước, nonStack/topLoad sau cùng (để tối ưu không gian rồi mới block)
+  units.sort((a,b)=>{
+    const aBlock = (a.nonStack||a.topLoad) ? 1 : 0;
+    const bBlock = (b.nonStack||b.topLoad) ? 1 : 0;
+    if(aBlock !== bBlock) return aBlock - bBlock;
+    return (b.L*b.W*b.H) - (a.L*a.W*a.H);
+  });
 
   let freeSpaces = [{x:0,y:0,z:0,w:container.L,h:container.H,d:container.W}];
   let placed = [];
@@ -632,9 +644,21 @@ function packContainer(container, rawItems){
     const {ow,oh,od} = best;
     placed.push({
       name:u.name, color:u.color, srcId:u.srcId,
-      x:fs.x, y:fs.y, z:fs.z, L:ow, H:oh, W:od, weight:u.weight
+      x:fs.x, y:fs.y, z:fs.z, L:ow, H:oh, W:od, weight:u.weight,
+      nonStack: u.nonStack||false, topLoad: u.topLoad||false
     });
     totalWeight += u.weight;
+    // NonStack hoặc TopLoad: không cho phép đặt bất kỳ kiện nào lên trên
+    if(u.nonStack || u.topLoad){
+      const px=fs.x, py=fs.y+oh, pz=fs.z, pL=ow, pW=od;
+      freeSpaces = freeSpaces.filter(sp =>
+        sp.y+sp.h <= py+1e-6 ||   // space hoàn toàn bên dưới
+        sp.x+sp.w <= px+1e-6 ||   // space hoàn toàn bên trái
+        sp.x >= px+pL-1e-6 ||     // space hoàn toàn bên phải
+        sp.z+sp.d <= pz+1e-6 ||   // space hoàn toàn phía trước
+        sp.z >= pz+pW-1e-6        // space hoàn toàn phía sau
+      );
+    }
 
     // guillotine split: remove fs, add up to 3 children
     freeSpaces.splice(best.fi,1);
