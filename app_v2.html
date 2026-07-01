@@ -519,6 +519,7 @@ function buildTabs(){
   if(CU.dept==='BPTT'||CU.role==='admin')tabs.push({id:'send',label:'Tạo phiếu'});
   if(CU.dept==='BPHT'||CU.role==='admin')tabs.push({id:'receive',label:'Nhận phiếu',badge:true});
   tabs.push({id:'history',label:'Lịch sử'});
+  if(CU.dept==='BPTT'||CU.role==='admin')tabs.push({id:'container',label:'📦 Đóng Container'});
   if(CU.role==='admin')tabs.push({id:'seals',label:'Danh sách chì'},{id:'reports',label:'Báo cáo'},{id:'admin',label:'Quản trị'});
   tabs.forEach((t,i)=>{
     const btn=document.createElement('button');
@@ -612,6 +613,7 @@ function buildView(id){
         </div>
       </div>
     </div>`;
+  if(id==='container')return `<div style="width:100%;height:calc(100vh - 120px);padding:0;margin:0"><iframe src="/container-loading-calculator.html" style="width:100%;height:100%;border:none;display:block" title="Tính toán đóng Container"></iframe></div>`;
   if(id==='seals')return `
     <div class="main">
       <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
@@ -756,6 +758,7 @@ function renderView(id){
   if(id==='seals')loadSealList();
   if(id==='admin'){loadUserList();loadCompleted();loadLicenseList();}
   if(id==='logistics')loadLogistics();
+  if(id==='container'){}
 }
 
 function showTab(id){

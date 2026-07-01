@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tính toán đóng Container | SWS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0b1220;
+  --panel:#121b2e;
+  --panel2:#0e1626;
+  --line:#223049;
+  --text:#e7edf6;
+  --muted:#8694ab;
+  --accent:#ff8a3d;
+  --accent2:#2dd4bf;
+  --good:#34d399;
+  --bad:#f87171;
+  --warn:#fbbf24;
+  --mono:'JetBrains Mono','Courier New',monospace;
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  height:100vh;
+  overflow:hidden;
+}
+.app{
+  display:grid;
+  grid-template-columns:380px 1fr;
+  height:100vh;
+}
+/* ---------- LEFT PANEL ---------- */
+.left{
+  background:var(--panel);
+  border-right:1px solid var(--line);
+  overflow-y:auto;
+  padding:18px 16px 80px;
+}
+.brand{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  margin-bottom:18px;
+}
+.brand .mark{
+  width:28px;height:28px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),#c2410c);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;color:#1a0e05;
+  flex-shrink:0;
+}
+.brand h1{font-size:15px;margin:0;font-weight:700;letter-spacing:.2px;}
+.brand span.sub{font-size:11px;color:var(--muted);display:block;margin-top:1px;}
+
+.section{margin-bottom:20px;}
+.section-title{
+  font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);margin:0 0 10px;font-weight:600;
+  display:flex;align-items:center;gap:6px;
+}
+.section-title::after{content:'';flex:1;height:1px;background:var(--line);}
+
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+
+select,input[type=text],input[type=number]{
+  width:100%;background:var(--panel2);border:1px solid var(--line);
+  color:var(--text);border-radius:7px;padding:7px 9px;font-size:13px;
+  font-family:var(--sans);outline:none;transition:border-color .15s;
+}
+select:focus,input:focus{border-color:var(--accent);}
+input[type=number]{font-family:var(--mono);}
+
+.container-preview{
+  background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;color:var(--muted);margin-top:8px;
+  font-family:var(--mono);line-height:1.7;
+}
+.container-preview b{color:var(--text);}
+
+/* item table */
+.items-list{display:flex;flex-direction:column;gap:8px;}
+.item-card{
+  background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+  padding:10px;position:relative;
+}
+.item-card .swatch{
+  width:10px;height:10px;border-radius:3px;display:inline-block;
+  margin-right:6px;vertical-align:middle;
+}
+.item-card .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.item-card .name-input{flex:1;background:transparent;border:none;color:var(--text);
+  font-size:13px;font-weight:600;padding:2px 0;outline:none;border-bottom:1px dashed transparent;}
+.item-card .name-input:focus{border-bottom-color:var(--accent);}
+.item-card .del{
+  background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;
+  padding:0 4px;line-height:1;transition:color .15s;
+}
+.item-card .del:hover{color:var(--bad);}
+.mini-label{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:2px;}
+.item-card input[type=number]{padding:5px 7px;font-size:12px;}
+.rot-row{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11.5px;color:var(--muted);}
+.rot-row input[type=radio]{accent-color:var(--accent);cursor:pointer;}
+.rot-row:has(input:checked){color:var(--text);}
+.rot-hint{font-size:10.5px;color:var(--muted);}
+
+.variant-divider{height:1px;background:var(--line);margin:10px 0;}
+.variant-tag{font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px;}
+.del-variant{
+  background:none;border:1px solid var(--line);color:var(--muted);cursor:pointer;
+  font-size:10.5px;border-radius:6px;padding:5px 8px;white-space:nowrap;transition:.15s;
+}
+.del-variant:hover{color:var(--bad);border-color:var(--bad);}
+.btn-add-variant{
+  width:100%;background:transparent;border:1px dashed #2a3a57;color:var(--muted);
+  border-radius:7px;padding:6px;font-size:11px;cursor:pointer;margin-top:8px;transition:.15s;
+}
+.btn-add-variant:hover{color:var(--accent2);border-color:var(--accent2);}
+
+.btn{
+  width:100%;border:none;border-radius:8px;padding:10px;font-size:13px;
+  font-weight:600;cursor:pointer;transition:filter .15s,transform .1s;
+  font-family:var(--sans);
+}
+.btn:active{transform:scale(.98);}
+.btn-add{background:var(--panel2);border:1px dashed var(--line);color:var(--muted);margin-top:8px;}
+.btn-add:hover{color:var(--text);border-color:var(--accent);}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),#e0651a);color:#1a0e05;
+  margin-top:14px;font-size:14px;padding:12px;
+  box-shadow:0 4px 14px rgba(255,138,61,.25);
+}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--muted);margin-top:8px;}
+.btn-ghost:hover{color:var(--text);}
+
+/* ---------- RIGHT PANEL ---------- */
+.right{position:relative;display:flex;flex-direction:column;background:radial-gradient(circle at 30% 20%,#10192c,#070b14 75%);}
+#canvas-wrap{flex:1;position:relative;min-height:0;}
+#canvas-wrap canvas{display:block;}
+
+.viewer-hint{
+  position:absolute;top:16px;left:16px;font-size:11px;color:var(--muted);
+  background:rgba(10,16,28,.7);backdrop-filter:blur(6px);padding:7px 11px;border-radius:7px;
+  border:1px solid var(--line);
+}
+.empty-state{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--muted);text-align:center;gap:10px;padding:20px;
+}
+.empty-state .big{font-size:42px;opacity:.4;}
+.empty-state h2{font-size:16px;color:var(--text);margin:0;font-weight:600;}
+.empty-state p{font-size:12.5px;max-width:320px;margin:0;line-height:1.6;}
+
+.results{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(10,16,28,.92);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+  padding:0;display:none;z-index:10;
+  box-shadow:0 -4px 24px rgba(0,0,0,.4);
+}
+.results.show{display:block;}
+
+/* verdict banner */
+.verdict-banner{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:14px 20px;border-bottom:1px solid var(--line);transition:background .3s;
+}
+.verdict-banner.ok{background:rgba(52,211,153,.07);}
+.verdict-banner.warn{background:rgba(251,191,36,.07);}
+.verdict-banner.fail{background:rgba(248,113,113,.07);}
+
+.vb-icon{
+  width:44px;height:44px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;
+}
+.ok .vb-icon{background:rgba(52,211,153,.15);color:var(--good);}
+.warn .vb-icon{background:rgba(251,191,36,.15);color:var(--warn);}
+.fail .vb-icon{background:rgba(248,113,113,.15);color:var(--bad);}
+
+.vb-text{flex:1;min-width:140px;}
+.vb-title{font-size:15px;font-weight:700;}
+.ok .vb-title{color:var(--good);}
+.warn .vb-title{color:var(--warn);}
+.fail .vb-title{color:var(--bad);}
+.vb-sub{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+
+.vb-stats{display:flex;gap:20px;flex-wrap:wrap;}
+.vb-stat{display:flex;flex-direction:column;gap:2px;}
+.vb-val{font-size:16px;font-weight:700;font-family:var(--mono);}
+.vb-label{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+
+.bar-wrap{flex:1;min-width:120px;}
+.bar-track{height:8px;background:var(--panel2);border-radius:5px;overflow:hidden;border:1px solid var(--line);}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:5px;transition:width .6s ease;}
+.bar-labels{display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted);margin-top:3px;font-family:var(--mono);}
+.results-toggle{
+  background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--muted);
+  border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;white-space:nowrap;
+  transition:.15s;flex-shrink:0;
+}
+.results-toggle:hover{color:var(--text);}
+
+/* detail table */
+.detail-section{padding:12px 20px 16px;}
+.detail-title{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;margin-bottom:8px;}
+.detail-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.detail-table th{
+  text-align:left;padding:6px 10px;font-size:10px;font-weight:600;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:1px solid var(--line);
+}
+.detail-table td{padding:7px 10px;border-bottom:1px solid rgba(34,48,73,.4);vertical-align:middle;}
+.detail-table tr:last-child td{border-bottom:none;}
+.detail-table tr:hover td{background:rgba(255,255,255,.02);}
+.ok-col{color:var(--good)!important;}
+.bad-col{color:var(--bad)!important;}
+.td-ok{color:var(--good);font-weight:700;font-family:var(--mono);}
+.td-bad{color:var(--bad);font-weight:700;font-family:var(--mono);}
+.td-zero{color:var(--muted);font-family:var(--mono);}
+.td-neutral{font-family:var(--mono);}
+.reason-tag{
+  display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;margin:1px 2px;
+  background:rgba(248,113,113,.12);color:var(--bad);border:1px solid rgba(248,113,113,.2);
+}
+.reason-none{color:var(--muted);font-size:11px;}
+.name-cell{display:flex;align-items:center;gap:8px;}
+.name-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+.toggle-btn{
+  position:absolute;top:16px;right:16px;background:rgba(10,16,28,.7);
+  border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:7px 11px;
+  font-size:11px;cursor:pointer;backdrop-filter:blur(6px);
+}
+.toggle-btn:hover{color:var(--text);}
+
+.import-box{
+  border:2px dashed var(--line);border-radius:10px;padding:20px;
+  text-align:center;cursor:pointer;transition:.2s;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.import-box:hover,.import-box.drag-over{border-color:var(--accent);background:rgba(255,138,61,.04);}
+.import-icon{font-size:28px;line-height:1;}
+.import-text{font-size:12.5px;color:var(--muted);line-height:1.5;}
+.import-text span{font-size:11px;color:var(--muted);opacity:.7;}
+.btn-import-label{
+  background:var(--panel2);border:1px solid var(--line);color:var(--text);
+  border-radius:7px;padding:7px 14px;font-size:12px;cursor:pointer;
+  transition:.15s;white-space:nowrap;
+}
+.btn-import-label:hover{border-color:var(--accent);color:var(--accent);}
+.import-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.btn-template{
+  background:none;border:1px solid var(--line);color:var(--muted);
+  border-radius:7px;padding:6px 10px;font-size:11.5px;cursor:pointer;transition:.15s;
+}
+.btn-template:hover{color:var(--accent2);border-color:var(--accent2);}
+.import-hint{font-size:10.5px;color:var(--muted);}
+.import-status{
+  margin-top:8px;padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.5;
+}
+.import-status.ok{background:rgba(52,211,153,.1);color:var(--good);border:1px solid rgba(52,211,153,.2);}
+.import-status.err{background:rgba(248,113,113,.1);color:var(--bad);border:1px solid rgba(248,113,113,.2);}
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#2a3a57;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== LEFT PANEL ===================== -->
+  <div class="left">
+    <div class="brand">
+      <div class="mark">SWS</div>
+      <div>
+        <h1>Tính toán đóng Container</h1>
+        <span class="sub">Mô phỏng xếp hàng 3D · SITC Đình Vũ CFS</span>
+      </div>
+    </div>
+
+    <!-- IMPORT SECTION -->
+    <div class="section">
+      <div class="section-title">Import dữ liệu</div>
+      <div class="import-box" id="importBox">
+        <div class="import-icon">📂</div>
+        <div class="import-text">Kéo thả file vào đây<br><span>hoặc</span></div>
+        <label class="btn-import-label">
+          Chọn file Excel / CSV
+          <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none;">
+        </label>
+      </div>
+      <div class="import-row">
+        <button class="btn-template" id="downloadTemplate">⬇ Tải file mẫu (.xlsx)</button>
+        <span class="import-hint">Cùng tên lô → tự gộp kích thước</span>
+      </div>
+      <div class="import-status" id="importStatus" style="display:none;"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Container</div>
+      <div class="field">
+        <label>Loại container</label>
+        <select id="containerType">
+          <option value="20DC">20DC – Container khô 20'</option>
+          <option value="40DC">40DC – Container khô 40'</option>
+          <option value="40HC" selected>40HC – Container cao 40'</option>
+          <option value="custom">Tùy chỉnh kích thước</option>
+        </select>
+      </div>
+      <div class="row3" id="customDims" style="display:none;">
+        <div class="field"><label>Dài (mm)</label><input type="number" id="cL" value="12032"></div>
+        <div class="field"><label>Rộng (mm)</label><input type="number" id="cW" value="2352"></div>
+        <div class="field"><label>Cao (mm)</label><input type="number" id="cH" value="2698"></div>
+      </div>
+      <div class="field">
+        <label>Tải trọng tối đa (kg)</label>
+        <input type="number" id="cMaxWeight" value="26580">
+      </div>
+      <div class="container-preview" id="containerPreview"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Danh sách lô hàng</div>
+      <div class="items-list" id="itemsList"></div>
+      <button class="btn btn-add" id="addItemBtn">+ Thêm lô hàng</button>
+    </div>
+
+    <button class="btn btn-primary" id="computeBtn">⚙ Tính toán xếp hàng</button>
+    <button class="btn btn-ghost" id="resetBtn">Đặt lại</button>
+  </div>
+
+  <!-- ===================== RIGHT PANEL ===================== -->
+  <div class="right">
+    <div id="canvas-wrap">
+      <div class="empty-state" id="emptyState">
+        <div class="big">📦</div>
+        <h2>Chưa có dữ liệu mô phỏng</h2>
+        <p>Nhập kích thước container và các lô hàng ở bên trái, sau đó bấm "Tính toán xếp hàng" để xem layout 3D, tỷ lệ lấp đầy và hướng dẫn đóng hàng.</p>
+      </div>
+      <div class="viewer-hint" id="viewerHint" style="display:none;">🖱 Kéo để xoay · Cuộn để zoom · Chuột phải để di chuyển</div>
+      <button class="toggle-btn" id="toggleBtn" style="display:none;">Ẩn lưới container</button>
+
+      <!-- KẾT QUẢ — overlay nổi góc dưới -->
+      <div class="results" id="results">
+        <!-- VERDICT BANNER -->
+        <div class="verdict-banner" id="verdictBanner">
+          <div class="vb-icon" id="vbIcon">✓</div>
+          <div class="vb-text">
+            <div class="vb-title" id="vbTitle">—</div>
+            <div class="vb-sub" id="vbSub">—</div>
+          </div>
+          <div class="vb-stats">
+            <div class="vb-stat">
+              <span class="vb-val" id="statItems">0/0</span>
+              <span class="vb-label">Kiện xếp được</span>
+            </div>
+            <div class="vb-stat">
+              <span class="vb-val" id="statVolPct">0%</span>
+              <span class="vb-label">Lấp đầy</span>
+            </div>
+            <div class="vb-stat">
+              <span class="vb-val" id="statWeight">0 kg</span>
+              <span class="vb-label">Tổng KL</span>
+            </div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-track"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
+            <div class="bar-labels"><span>0%</span><span id="barPctLabel">0%</span><span>100%</span></div>
+          </div>
+          <button class="results-toggle" id="resultsToggle" title="Xem chi tiết">▲ Chi tiết</button>
+        </div>
+
+        <!-- DETAIL TABLE — collapsible -->
+        <div class="detail-section" id="detailSection" style="display:none;">
+          <div class="detail-title">Chi tiết từng lô hàng</div>
+          <table class="detail-table" id="detailTable">
+            <thead>
+              <tr>
+                <th>Lô hàng</th>
+                <th>Yêu cầu</th>
+                <th class="ok-col">Xếp được ✓</th>
+                <th class="bad-col">Không vừa ✕</th>
+                <th>Lý do</th>
+              </tr>
+            </thead>
+            <tbody id="detailBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   1. CONTAINER PRESETS (inner dims in mm)
+========================================================= */
+const PRESETS = {
+  "20DC": {L:5898, W:2352, H:2393, maxW:28200, label:"20DC – Container khô 20'"},
+  "40DC": {L:12032,W:2352, H:2393, maxW:26700, label:"40DC – Container khô 40'"},
+  "40HC": {L:12032,W:2352, H:2698, maxW:26580, label:"40HC – Container cao 40'"},
+};
+
+const COLORS = ["#ff8a3d","#2dd4bf","#60a5fa","#f472b6","#a78bfa","#fbbf24","#34d399","#fb7185","#38bdf8","#facc15"];
+
+let itemSeq = 0;
+let variantSeq = 0;
+function newVariant(L,W,H,wt,qty,rotMode){
+  variantSeq++;
+  return {vid:variantSeq, L,W,H, weight:wt, qty, rotMode: rotMode||'horizontal'};
+}
+function newItem(name, variants){
+  itemSeq++;
+  return {id:itemSeq, name, color: COLORS[(itemSeq-1)%COLORS.length], variants};
+}
+
+let items = [
+  newItem("Pallet A", [
+    newVariant(1200, 1000, 1000, 350, 8, 'horizontal'),
+    newVariant(900, 700, 800, 220, 5, 'horizontal'),
+  ]),
+  newItem("Carton B", [
+    newVariant(800, 600, 900, 150, 14, 'free'),
+  ]),
+];
+
+/* =========================================================
+   2. UI BUILD — left panel
+========================================================= */
+const containerTypeEl = document.getElementById('containerType');
+const customDims = document.getElementById('customDims');
+const cL = document.getElementById('cL'), cW = document.getElementById('cW'),
+      cH = document.getElementById('cH'), cMaxWeight = document.getElementById('cMaxWeight');
+const containerPreview = document.getElementById('containerPreview');
+
+function getContainerDims(){
+  const t = containerTypeEl.value;
+  if(t === 'custom'){
+    return {L:+cL.value||0, W:+cW.value||0, H:+cH.value||0, maxW:+cMaxWeight.value||0};
+  }
+  const p = PRESETS[t];
+  return {L:p.L, W:p.W, H:p.H, maxW:+cMaxWeight.value||p.maxW};
+}
+
+function updateContainerUI(){
+  const t = containerTypeEl.value;
+  customDims.style.display = (t==='custom') ? 'grid' : 'none';
+  if(t !== 'custom'){
+    const p = PRESETS[t];
+    cMaxWeight.value = p.maxW;
+  }
+  const d = getContainerDims();
+  const cbm = (d.L*d.W*d.H/1e9).toFixed(1);
+  containerPreview.innerHTML = `Kích thước trong lòng: <b>${d.L} × ${d.W} × ${d.H} mm</b><br>Thể tích: <b>${cbm} m³</b> &nbsp;|&nbsp; Tải trọng: <b>${d.maxW.toLocaleString()} kg</b>`;
+}
+containerTypeEl.addEventListener('change', updateContainerUI);
+[cL,cW,cH,cMaxWeight].forEach(el=>el.addEventListener('input', updateContainerUI));
+updateContainerUI();
+
+const itemsListEl = document.getElementById('itemsList');
+
+function renderItems(){
+  itemsListEl.innerHTML = '';
+  items.forEach(it=>{
+    const card = document.createElement('div');
+    card.className = 'item-card';
+
+    const variantsHtml = it.variants.map((v, vi)=>`
+      <div class="variant-row" data-vid="${v.vid}">
+        ${it.variants.length>1 ? `<div class="variant-tag">Kích thước ${vi+1}</div>` : ''}
+        <div class="row3">
+          <div><span class="mini-label">Dài (mm)</span><input type="number" value="${v.L}" data-vf="L"></div>
+          <div><span class="mini-label">Rộng (mm)</span><input type="number" value="${v.W}" data-vf="W"></div>
+          <div><span class="mini-label">Cao (mm)</span><input type="number" value="${v.H}" data-vf="H"></div>
+        </div>
+        <div class="row3" style="margin-top:6px;">
+          <div><span class="mini-label">KL/kiện (kg)</span><input type="number" value="${v.weight}" data-vf="weight"></div>
+          <div><span class="mini-label">Số lượng</span><input type="number" value="${v.qty}" data-vf="qty"></div>
+          <div style="display:flex;align-items:flex-end;justify-content:center;">
+            ${it.variants.length>1 ? `<button class="del-variant" title="Xóa kích thước này">✕ kích thước</button>` : ''}
+          </div>
+        </div>
+        <label class="rot-row"><input type="radio" name="rot-${v.vid}" data-vf="rotMode" value="none" ${v.rotMode==='none'?'checked':''}> Không xoay</label>
+        <label class="rot-row"><input type="radio" name="rot-${v.vid}" data-vf="rotMode" value="horizontal" ${v.rotMode==='horizontal'?'checked':''}> Xoay ngang <span class="rot-hint">(đổi Dài↔Rộng, giữ nguyên Cao)</span></label>
+        <label class="rot-row"><input type="radio" name="rot-${v.vid}" data-vf="rotMode" value="free" ${v.rotMode==='free'?'checked':''}> Xoay tự do <span class="rot-hint">(carton, khối đặc — lật được 6 hướng)</span></label>
+      </div>
+    `).join('<div class="variant-divider"></div>');
+
+    card.innerHTML = `
+      <div class="top">
+        <span class="swatch" style="background:${it.color}"></span>
+        <input class="name-input" value="${it.name}" data-f="name">
+        <button class="del" title="Xóa cả lô hàng">✕</button>
+      </div>
+      ${variantsHtml}
+      <button class="btn-add-variant" type="button">+ Thêm kích thước cho lô này</button>
+    `;
+
+    card.querySelector('[data-f="name"]').addEventListener('input', e=>{ it.name = e.target.value; });
+    card.querySelector('.del').addEventListener('click', ()=>{
+      items = items.filter(x=>x.id!==it.id);
+      renderItems();
+    });
+    card.querySelector('.btn-add-variant').addEventListener('click', ()=>{
+      it.variants.push(newVariant(1000,800,800,200,5,true));
+      renderItems();
+    });
+    card.querySelectorAll('.variant-row').forEach(row=>{
+      const vid = +row.dataset.vid;
+      const v = it.variants.find(x=>x.vid===vid);
+      row.querySelectorAll('[data-vf]').forEach(inp=>{
+        inp.addEventListener('change', ()=>{
+          const f = inp.dataset.vf;
+          v[f] = (inp.type==='number' ? (+inp.value||0) : inp.value);
+        });
+        inp.addEventListener('input', ()=>{
+          const f = inp.dataset.vf;
+          if(inp.type==='number') v[f] = +inp.value||0;
+        });
+      });
+      const delBtn = row.querySelector('.del-variant');
+      if(delBtn){
+        delBtn.addEventListener('click', ()=>{
+          it.variants = it.variants.filter(x=>x.vid!==vid);
+          renderItems();
+        });
+      }
+    });
+
+    itemsListEl.appendChild(card);
+  });
+}
+renderItems();
+
+document.getElementById('addItemBtn').addEventListener('click', ()=>{
+  items.push(newItem(`Kiện hàng ${items.length+1}`, [newVariant(1000,800,800,200,5,true)]));
+  renderItems();
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  items = [];
+  renderItems();
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('viewerHint').style.display = 'none';
+  document.getElementById('toggleBtn').style.display = 'none';
+  clearScene();
+});
+
+/* =========================================================
+   3. 3D GUILLOTINE BIN PACKING ALGORITHM
+   axes: x = length(L), y = height(H), z = width(W)
+========================================================= */
+function packContainer(container, rawItems){
+  // expand qty into individual units
+  let units = [];
+  rawItems.forEach(it=>{
+    it.variants.forEach(v=>{
+      for(let i=0;i<v.qty;i++){
+        units.push({
+          srcId: it.id, name: it.name, color: it.color,
+          L: v.L, W: v.W, H: v.H, weight: v.weight, rotMode: v.rotMode
+        });
+      }
+    });
+  });
+  // sort largest volume first (best practice for bin packing heuristics)
+  units.sort((a,b)=> (b.L*b.W*b.H) - (a.L*a.W*a.H));
+
+  let freeSpaces = [{x:0,y:0,z:0,w:container.L,h:container.H,d:container.W}];
+  let placed = [];
+  let unplaced = [];
+  let totalWeight = 0;
+
+  function orientations(u){
+    if(u.rotMode === 'none'){
+      // fixed orientation, no rotation at all
+      return [[u.L, u.H, u.W]];
+    }
+    if(u.rotMode === 'horizontal'){
+      // only swap L↔W (rotate 90° on floor), H always stays vertical
+      return [
+        [u.L, u.H, u.W],
+        [u.W, u.H, u.L],
+      ];
+    }
+    // 'free' — all 6 permutations (carton, solid block)
+    const d = [u.L, u.H, u.W];
+    const perms = [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+    const seen = new Set(); const out = [];
+    perms.forEach(p=>{
+      const o = [d[p[0]], d[p[1]], d[p[2]]];
+      const key = o.join('x');
+      if(!seen.has(key)){ seen.add(key); out.push(o); }
+    });
+    return out;
+  }
+
+  for(const u of units){
+    if(totalWeight + u.weight > container.maxW){
+      unplaced.push({...u, reason:'Vượt tải trọng'});
+      continue;
+    }
+    let best = null; // {fsIndex, ow,oh,od, vol}
+    for(let fi=0; fi<freeSpaces.length; fi++){
+      const fs = freeSpaces[fi];
+      const fsVol = fs.w*fs.h*fs.d;
+      for(const [ow,oh,od] of orientations(u)){
+        if(ow<=fs.w+1e-6 && oh<=fs.h+1e-6 && od<=fs.d+1e-6){
+          if(!best || fsVol < best.fsVol){
+            best = {fi, ow,oh,od, fsVol};
+          }
+        }
+      }
+    }
+    if(!best){
+      unplaced.push({...u, reason:'Không vừa không gian còn lại'});
+      continue;
+    }
+    const fs = freeSpaces[best.fi];
+    const {ow,oh,od} = best;
+    placed.push({
+      name:u.name, color:u.color, srcId:u.srcId,
+      x:fs.x, y:fs.y, z:fs.z, L:ow, H:oh, W:od, weight:u.weight
+    });
+    totalWeight += u.weight;
+
+    // guillotine split: remove fs, add up to 3 children
+    freeSpaces.splice(best.fi,1);
+    const childA = {x:fs.x+ow, y:fs.y, z:fs.z, w:fs.w-ow, h:fs.h, d:fs.d}; // remainder along length
+    const childB = {x:fs.x, y:fs.y+oh, z:fs.z, w:ow, h:fs.h-oh, d:fs.d};   // remainder along height
+    const childC = {x:fs.x, y:fs.y, z:fs.z+od, w:ow, h:oh, d:fs.d-od};    // remainder along width
+    [childA,childB,childC].forEach(c=>{
+      if(c.w>1 && c.h>1 && c.d>1) freeSpaces.push(c);
+    });
+  }
+
+  const usedVol = placed.reduce((s,p)=>s+p.L*p.H*p.W,0);
+  const containerVol = container.L*container.H*container.W;
+
+  return {
+    placed, unplaced, totalWeight,
+    volPct: containerVol>0 ? (usedVol/containerVol*100) : 0,
+    totalUnits: units.length,
+    placedCount: placed.length
+  };
+}
+
+/* =========================================================
+   4. THREE.JS SCENE
+========================================================= */
+let scene, camera, renderer, controls, animId;
+let containerGroup, boxesGroup;
+const canvasWrap = document.getElementById('canvas-wrap');
+
+function initScene(){
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, canvasWrap.clientWidth/canvasWrap.clientHeight, 1, 100000);
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(canvasWrap.clientWidth, canvasWrap.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  canvasWrap.appendChild(renderer.domElement);
+
+  const amb = new THREE.AmbientLight(0xffffff, 0.65);
+  scene.add(amb);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(1,1.2,0.8);
+  scene.add(dir);
+  const dir2 = new THREE.DirectionalLight(0x88aaff, 0.3);
+  dir2.position.set(-1,0.4,-1);
+  scene.add(dir2);
+
+  containerGroup = new THREE.Group();
+  boxesGroup = new THREE.Group();
+  scene.add(containerGroup);
+  scene.add(boxesGroup);
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+function onResize(){
+  if(!renderer) return;
+  camera.aspect = canvasWrap.clientWidth/canvasWrap.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(canvasWrap.clientWidth, canvasWrap.clientHeight);
+}
+
+// simple orbit-style mouse controls (no external dependency)
+let isDragging=false, isPanning=false, lastX=0,lastY=0;
+let camTheta=0.9, camPhi=1.1, camDist=14000, camTarget=new THREE.Vector3(0,0,0);
+function updateCamera(){
+  const x = camTarget.x + camDist*Math.sin(camPhi)*Math.sin(camTheta);
+  const y = camTarget.y + camDist*Math.cos(camPhi);
+  const z = camTarget.z + camDist*Math.sin(camPhi)*Math.cos(camTheta);
+  camera.position.set(x,y,z);
+  camera.lookAt(camTarget);
+}
+function attachControls(){
+  const dom = renderer.domElement;
+  dom.style.cursor='grab';
+  dom.addEventListener('contextmenu', e=>e.preventDefault());
+  dom.addEventListener('mousedown', e=>{
+    if(e.button===2){isPanning=true;} else {isDragging=true;}
+    lastX=e.clientX; lastY=e.clientY; dom.style.cursor='grabbing';
+  });
+  window.addEventListener('mouseup', ()=>{isDragging=false; isPanning=false; dom.style.cursor='grab';});
+  window.addEventListener('mousemove', e=>{
+    const dx=e.clientX-lastX, dy=e.clientY-lastY;
+    lastX=e.clientX; lastY=e.clientY;
+    if(isDragging){
+      camTheta -= dx*0.006;
+      camPhi -= dy*0.006;
+      camPhi = Math.max(0.15, Math.min(Math.PI-0.15, camPhi));
+      updateCamera();
+    } else if(isPanning){
+      const right = new THREE.Vector3(); camera.getWorldDirection(right);
+      const panX = new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+      const panY = new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+      camTarget.addScaledVector(panX, -dx*camDist*0.0006);
+      camTarget.addScaledVector(panY, dy*camDist*0.0006);
+      updateCamera();
+    }
+  });
+  dom.addEventListener('wheel', e=>{
+    e.preventDefault();
+    camDist *= (e.deltaY>0)?1.08:0.92;
+    camDist = Math.max(2000, Math.min(60000, camDist));
+    updateCamera();
+  }, {passive:false});
+}
+
+function animate(){
+  animId = requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+
+function clearScene(){
+  if(!containerGroup) return;
+  [containerGroup, boxesGroup].forEach(g=>{
+    while(g.children.length) g.remove(g.children[0]);
+  });
+}
+
+function drawContainer(container){
+  clearScene();
+  const {L,H,W} = container;
+  const geo = new THREE.BoxGeometry(L,H,W);
+  const edges = new THREE.EdgesGeometry(geo);
+  const mat = new THREE.LineBasicMaterial({color:0x3a4f72, linewidth:1});
+  const wire = new THREE.LineSegments(edges, mat);
+  wire.position.set(L/2,H/2,W/2);
+  containerGroup.add(wire);
+
+  // floor grid for reference
+  const floorGeo = new THREE.PlaneGeometry(L, W);
+  const floorMat = new THREE.MeshBasicMaterial({color:0x0e1626, transparent:true, opacity:0.5, side:THREE.DoubleSide});
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.position.set(L/2, 0.5, W/2);
+  containerGroup.add(floor);
+
+  camTarget.set(L/2,H/3,W/2);
+  camDist = Math.max(L,W,H)*1.7;
+  updateCamera();
+}
+
+function drawBoxes(placed){
+  while(boxesGroup.children.length) boxesGroup.remove(boxesGroup.children[0]);
+  placed.forEach(p=>{
+    const geo = new THREE.BoxGeometry(p.L*0.97, p.H*0.97, p.W*0.97);
+    const mat = new THREE.MeshStandardMaterial({color:new THREE.Color(p.color), roughness:0.55, metalness:0.05});
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(p.x+p.L/2, p.y+p.H/2, p.z+p.W/2);
+    boxesGroup.add(mesh);
+
+    const edges = new THREE.EdgesGeometry(geo);
+    const lineMat = new THREE.LineBasicMaterial({color:0x000000, transparent:true, opacity:0.25});
+    const line = new THREE.LineSegments(edges, lineMat);
+    line.position.copy(mesh.position);
+    boxesGroup.add(line);
+  });
+}
+
+/* =========================================================
+   5. COMPUTE + RENDER RESULTS
+========================================================= */
+document.getElementById('computeBtn').addEventListener('click', ()=>{
+  if(items.length===0 || items.every(it=>it.variants.every(v=>v.qty<=0))){
+    alert('Vui lòng thêm ít nhất một lô hàng có số lượng > 0.');
+    return;
+  }
+  const container = getContainerDims();
+  if(container.L<=0 || container.W<=0 || container.H<=0){
+    alert('Kích thước container không hợp lệ.');
+    return;
+  }
+
+  const result = packContainer(container, items);
+
+  if(!scene) initScene(), attachControls();
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('viewerHint').style.display = 'block';
+  document.getElementById('toggleBtn').style.display = 'block';
+
+  drawContainer(container);
+  drawBoxes(result.placed);
+
+  // ---- results panel ----
+  const resEl = document.getElementById('results');
+  resEl.classList.add('show');
+
+  // --- stats ---
+  document.getElementById('statItems').textContent = `${result.placedCount} / ${result.totalUnits}`;
+  document.getElementById('statVolPct').textContent = `${result.volPct.toFixed(1)}%`;
+  document.getElementById('statWeight').textContent = `${result.totalWeight.toLocaleString()} / ${container.maxW.toLocaleString()} kg`;
+  const pct = Math.min(100, result.volPct);
+  document.getElementById('barFill').style.width = pct.toFixed(1)+'%';
+  document.getElementById('barPctLabel').textContent = pct.toFixed(1)+'%';
+
+  // --- verdict banner ---
+  const banner = document.getElementById('verdictBanner');
+  const vbIcon = document.getElementById('vbIcon');
+  const vbTitle = document.getElementById('vbTitle');
+  const vbSub  = document.getElementById('vbSub');
+  banner.className = 'verdict-banner';
+  if(result.unplaced.length === 0){
+    banner.classList.add('ok');
+    vbIcon.textContent = '✓';
+    vbTitle.textContent = 'ĐÓNG VỪA TOÀN BỘ HÀNG';
+    vbSub.textContent  = `Tất cả ${result.totalUnits} kiện đã xếp vào container. Tỷ lệ lấp đầy ${result.volPct.toFixed(1)}%.`;
+  } else if(result.placedCount > 0){
+    banner.classList.add('warn');
+    vbIcon.textContent = '⚠';
+    vbTitle.textContent = `CÒN DƯ ${result.unplaced.length} KIỆN KHÔNG VỪA`;
+    vbSub.textContent  = `Xếp được ${result.placedCount}/${result.totalUnits} kiện. Xem chi tiết bên dưới để biết lô nào và lý do.`;
+  } else {
+    banner.classList.add('fail');
+    vbIcon.textContent = '✕';
+    vbTitle.textContent = 'KHÔNG XẾP ĐƯỢC KIỆN NÀO';
+    vbSub.textContent  = 'Tất cả hàng đều không vừa container. Kiểm tra lại kích thước hoặc chọn container lớn hơn.';
+  }
+
+  // --- detail table ---
+  const byItem = {};
+  result.placed.forEach(p=>{
+    if(!byItem[p.srcId]) byItem[p.srcId]={name:p.name,color:p.color,placed:0,unplaced:0,reasons:new Set()};
+    byItem[p.srcId].placed++;
+  });
+  result.unplaced.forEach(p=>{
+    if(!byItem[p.srcId]) byItem[p.srcId]={name:p.name,color:p.color,placed:0,unplaced:0,reasons:new Set()};
+    byItem[p.srcId].unplaced++;
+    byItem[p.srcId].reasons.add(p.reason||'Không rõ');
+  });
+
+  const tbody = document.getElementById('detailBody');
+  tbody.innerHTML = '';
+  Object.values(byItem).forEach(row=>{
+    const total = row.placed + row.unplaced;
+    const allOk = row.unplaced === 0;
+    const allFail = row.placed === 0;
+    const reasonsHtml = row.unplaced > 0
+      ? [...row.reasons].map(r=>`<span class="reason-tag">${r}</span>`).join('')
+      : '<span class="reason-none">—</span>';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div class="name-cell"><span class="name-dot" style="background:${row.color}"></span>${row.name}</div></td>
+      <td class="td-neutral">${total}</td>
+      <td class="${allOk?'td-ok':row.placed>0?'td-ok':'td-zero'}">${row.placed}</td>
+      <td class="${row.unplaced>0?'td-bad':'td-zero'}">${row.unplaced>0?row.unplaced:'—'}</td>
+      <td>${reasonsHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+});
+
+document.getElementById('toggleBtn').addEventListener('click', (e)=>{
+  containerGroup.visible = !containerGroup.visible;
+  e.target.textContent = containerGroup.visible ? 'Ẩn lưới container' : 'Hiện lưới container';
+});
+
+document.getElementById('resultsToggle').addEventListener('click', ()=>{
+  const sec = document.getElementById('detailSection');
+  const btn = document.getElementById('resultsToggle');
+  const visible = sec.style.display !== 'none';
+  sec.style.display = visible ? 'none' : 'block';
+  btn.textContent = visible ? '▲ Chi tiết' : '▼ Đóng';
+});
+
+/* =========================================================
+   IMPORT EXCEL / CSV
+========================================================= */
+const ROT_MAP = {
+  'ngang':'horizontal','horizontal':'horizontal',
+  'tự do':'free','tu do':'free','free':'free',
+  'không xoay':'none','khong xoay':'none','none':'none',
+  '':'horizontal'
+};
+const REQUIRED_COLS = ['tên lô hàng','dài (mm)','rộng (mm)','cao (mm)','kl/kiện (kg)','số lượng'];
+const COL_ALIASES = {
+  'ten lo hang':'tên lô hàng','tên lô hàng':'tên lô hàng','ten':'tên lô hàng','name':'tên lô hàng','lô hàng':'tên lô hàng',
+  'dai (mm)':'dài (mm)','dài (mm)':'dài (mm)','dai':'dài (mm)','length':'dài (mm)','l (mm)':'dài (mm)','l':'dài (mm)',
+  'rong (mm)':'rộng (mm)','rộng (mm)':'rộng (mm)','rong':'rộng (mm)','width':'rộng (mm)','w (mm)':'rộng (mm)','w':'rộng (mm)',
+  'cao (mm)':'cao (mm)','height':'cao (mm)','h (mm)':'cao (mm)','h':'cao (mm)',
+  'kl/kien (kg)':'kl/kiện (kg)','kl/kiện (kg)':'kl/kiện (kg)','kl':'kl/kiện (kg)','weight':'kl/kiện (kg)','kg':'kl/kiện (kg)','khoi luong':'kl/kiện (kg)',
+  'so luong':'số lượng','số lượng':'số lượng','qty':'số lượng','quantity':'số lượng','sl':'số lượng',
+  'xoay':'xoay','rotation':'xoay','rot':'xoay',
+};
+
+function normalizeKey(s){
+  return s.trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9 /()]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function parseImportData(rows){
+  if(!rows || rows.length < 2) throw new Error('File trống hoặc không đủ dữ liệu.');
+
+  // Find header row (first row containing a recognized column name)
+  let headerIdx = -1, headerMap = {};
+  for(let ri=0; ri<Math.min(rows.length,5); ri++){
+    const row = rows[ri];
+    const tmp = {};
+    let hits = 0;
+    row.forEach((cell,ci)=>{
+      const nk = normalizeKey(String(cell||''));
+      const mapped = COL_ALIASES[nk];
+      if(mapped){ tmp[mapped]=ci; hits++; }
+    });
+    if(hits >= 3){ headerIdx=ri; headerMap=tmp; break; }
+  }
+  if(headerIdx===-1) throw new Error('Không tìm thấy hàng tiêu đề. Xem file mẫu để biết định dạng đúng.');
+  const missing = REQUIRED_COLS.filter(c=>!(c in headerMap));
+  if(missing.length) throw new Error(`Thiếu cột: ${missing.join(', ')}`);
+
+  const lotMap = new Map(); // name -> item
+  let importedCount = 0;
+
+  for(let ri=headerIdx+1; ri<rows.length; ri++){
+    const row = rows[ri];
+    const get = col => {
+      const ci = headerMap[col];
+      return ci!=null ? row[ci] : undefined;
+    };
+    const name = String(get('tên lô hàng')||'').trim();
+    if(!name) continue;
+    const L = parseFloat(get('dài (mm)'))||0;
+    const W = parseFloat(get('rộng (mm)'))||0;
+    const H = parseFloat(get('cao (mm)'))||0;
+    const wt = parseFloat(get('kl/kiện (kg)'))||0;
+    const qty = parseInt(get('số lượng'))||0;
+    const rotRaw = normalizeKey(String(get('xoay')||''));
+    const rotMode = ROT_MAP[rotRaw] || ROT_MAP[rotRaw.replace(/\s/g,'')] || 'horizontal';
+    if(L<=0||W<=0||H<=0||qty<=0) continue;
+
+    if(!lotMap.has(name)){
+      itemSeq++;
+      lotMap.set(name, {
+        id: itemSeq, name,
+        color: COLORS[(itemSeq-1)%COLORS.length],
+        variants: []
+      });
+    }
+    variantSeq++;
+    lotMap.get(name).variants.push({vid:variantSeq, L,W,H, weight:wt, qty, rotMode});
+    importedCount++;
+  }
+
+  if(importedCount===0) throw new Error('Không đọc được dòng dữ liệu nào. Kiểm tra lại file.');
+  return {items: [...lotMap.values()], count: importedCount, lots: lotMap.size};
+}
+
+function handleImportFile(file){
+  const statusEl = document.getElementById('importStatus');
+  statusEl.style.display='none';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      let rows;
+      if(ext==='csv'){
+        const text = new TextDecoder('utf-8').decode(new Uint8Array(e.target.result));
+        rows = text.split(/\r?\n/).map(line=>line.split(',').map(c=>c.replace(/^"|"$/g,'').trim()));
+      } else {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      }
+      const result = parseImportData(rows);
+      items = result.items;
+      renderItems();
+      statusEl.className='import-status ok';
+      statusEl.textContent = `✓ Import thành công: ${result.lots} lô hàng, ${result.count} dòng kích thước.`;
+      statusEl.style.display='block';
+    } catch(err){
+      statusEl.className='import-status err';
+      statusEl.textContent = '✕ Lỗi: ' + err.message;
+      statusEl.style.display='block';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('importFile').addEventListener('change', e=>{
+  if(e.target.files[0]) handleImportFile(e.target.files[0]);
+  e.target.value='';
+});
+
+// drag & drop
+const importBox = document.getElementById('importBox');
+importBox.addEventListener('dragover', e=>{ e.preventDefault(); importBox.classList.add('drag-over'); });
+importBox.addEventListener('dragleave', ()=>importBox.classList.remove('drag-over'));
+importBox.addEventListener('drop', e=>{
+  e.preventDefault(); importBox.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if(f) handleImportFile(f);
+});
+
+/* =========================================================
+   DOWNLOAD TEMPLATE
+========================================================= */
+document.getElementById('downloadTemplate').addEventListener('click', ()=>{
+  const header = ['Tên lô hàng','Dài (mm)','Rộng (mm)','Cao (mm)','KL/kiện (kg)','Số lượng','Xoay'];
+  const sampleData = [
+    ['Pallet A',1200,1000,1200,344.8,8,'ngang'],
+    ['Pallet A',1200,1000,684,344.8,2,'ngang'],
+    ['Pallet A',1200,1000,512,344.8,1,'ngang'],
+    ['Carton B',600,400,500,15,20,'tự do'],
+    ['Carton B',800,500,600,22,10,'tự do'],
+    ['Kiện cố định',900,700,800,50,5,'không xoay'],
+  ];
+  const note = [['Cột Xoay: ghi "ngang" (pallet, chỉ đổi dài↔rộng), "tự do" (carton, lật 6 hướng), hoặc "không xoay"']];
+  const ws = XLSX.utils.aoa_to_sheet([header, ...sampleData, [], ...note]);
+
+  // Column widths
+  ws['!cols'] = [22,12,12,10,14,10,14].map(w=>({wch:w}));
+
+  // Header style (bold yellow bg) — basic xlsx styling
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for(let C=range.s.c; C<=range.e.c; C++){
+    const addr = XLSX.utils.encode_cell({r:0,c:C});
+    if(!ws[addr]) continue;
+    ws[addr].s = {font:{bold:true},fill:{fgColor:{rgb:'FF8A3D'}},alignment:{horizontal:'center'}};
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Danh sách hàng');
+  XLSX.writeFile(wb, 'container-loading-template.xlsx');
+});
+</script>
+</body>
+</html>
