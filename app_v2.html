@@ -340,6 +340,10 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
       style="padding:12px 20px;border:none;border-bottom:3px solid transparent;cursor:pointer;font-size:13px;font-weight:600;background:transparent;color:var(--txt3);margin-bottom:-2px;display:none">
       📦 Calculator
     </button>
+    <button id="maintab-debit" onclick="switchMainTab('debit')"
+      style="padding:12px 20px;border:none;border-bottom:3px solid transparent;cursor:pointer;font-size:13px;font-weight:600;background:transparent;color:var(--txt3);margin-bottom:-2px;display:none">
+      💰 DEBIT
+    </button>
   </div>
   <!-- Sub tabbar for bangiao -->
   <div id="subtabbar-bangiao">
@@ -350,6 +354,9 @@ textarea.finp{font-family:var(--mono);resize:none;line-height:1.65}
   <div id="subtabbar-calculator" style="display:none"></div>
   <div id="view-calculator" style="display:none;width:100%;height:calc(100vh - 90px)">
     <iframe src="/container-loading-calculator.html" style="width:100%;height:100%;border:none;display:block" title="Calculator"></iframe>
+  </div>
+  <div id="view-debit" style="display:none;width:100%;height:calc(100vh - 90px)">
+    <iframe src="/debit.html" style="width:100%;height:100%;border:none;display:block" title="DEBIT"></iframe>
   </div>
   <div id="views"></div>
 </div>
@@ -545,6 +552,8 @@ function buildTabs(){
   // Hiện tab Calculator nếu là BPTT hoặc admin
   const calcBtn=document.getElementById('maintab-calculator');
   if(calcBtn&&(CU.dept==='BPTT'||CU.role==='admin'))calcBtn.style.display='block';
+  const debitBtn=document.getElementById('maintab-debit');
+  if(debitBtn&&CU.role==='admin')debitBtn.style.display='block';
 }
 
 function buildView(id){
@@ -739,7 +748,7 @@ function buildView(id){
 
 
 function switchMainTab(tab) {
-  const tabs = ['bangiao','logistics','calculator'];
+  const tabs = ['bangiao','logistics','calculator','debit'];
   tabs.forEach(t => {
     const btn = document.getElementById('maintab-'+t);
     if(btn) { btn.style.color = t===tab ? 'var(--acc)' : 'var(--txt3)'; btn.style.borderBottomColor = t===tab ? 'var(--acc)' : 'transparent'; }
@@ -747,6 +756,7 @@ function switchMainTab(tab) {
   document.getElementById('subtabbar-bangiao').style.display = tab==='bangiao' ? 'block' : 'none';
   document.getElementById('subtabbar-logistics').style.display = 'none';
   document.getElementById('view-calculator').style.display = 'none';
+  document.getElementById('view-debit').style.display = 'none';
   document.getElementById('views').style.display = tab==='bangiao' ? 'block' : 'none';
   if(tab==='logistics') {
     document.getElementById('views').style.display = 'block';
@@ -757,6 +767,8 @@ function switchMainTab(tab) {
     loadLogistics();
   } else if(tab==='calculator') {
     document.getElementById('view-calculator').style.display = 'block';
+  } else if(tab==='debit') {
+    document.getElementById('view-debit').style.display = 'block';
   }
 }
 
