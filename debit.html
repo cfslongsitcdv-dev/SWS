@@ -778,6 +778,20 @@ function downloadCustTemplate(){
   XLSX.writeFile(wb,'Template_KhachHang.xlsx');
 }
 
+function excelDate(v){
+  if(!v)return null;
+  if(typeof v==='number'){
+    // Excel serial date → ISO string
+    const d=new Date(Math.round((v-25569)*86400*1000));
+    return d.toISOString().slice(0,10);
+  }
+  const s=String(v).trim();
+  if(!s)return null;
+  const m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m)return`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  try{const d=new Date(s);if(!isNaN(d))return d.toISOString().slice(0,10);}catch(e){}
+  return null;
+}
 async function importCustomers(inp){
   const file=inp.files[0];if(!file)return;
   const reader=new FileReader();
@@ -793,7 +807,7 @@ async function importCustomers(inp){
       trucking_1:+r[6]||0,trucking_2:+r[7]||0,trucking_3:+r[8]||0,trucking_4:+r[9]||0,
       storage_rate:+r[10]||0,storage_free_days:+r[11]||14,
       customs_fee:+r[12]||0,vat_pct:+r[13]||8,
-      price_valid_from:r[14]||null,price_valid_to:r[15]||null,
+      price_valid_from:excelDate(r[14]),price_valid_to:excelDate(r[15]),
     }));
     const{error}=await SB.from('debit_customers').upsert(data,{onConflict:'name'});
     if(error){notif('Lỗi: '+error.message,'n-err');return;}
