@@ -1220,7 +1220,6 @@ async function runCalculate(){
       if(minC>0)cfsCntr=Math.max(cfsCntr,minC);
       cfsAmt+=cfsCntr;
       const tType=ti.type||getTT(ti.pickup,ti.pol);
-      const is20=(contType||'').includes('20');
       const truckVal=c?c['trucking_'+(tType.replace('2.',''))]:null;
       const tRate=parseTruckingRate(truckVal,is20);
       truckAmt+=tRate;
