@@ -317,10 +317,10 @@ tr:hover td{background:#fafafa}
   </div>
   <div class="sec-div">🚛 Phí vận chuyển (VND/cont)</div>
   <div class="g2" style="margin-bottom:14px">
-    <div><label class="flbl">2.1 Lấy SITC → hạ bãi khác (không LH)</label><input class="finp" type="number" id="c-t1" placeholder="600000"></div>
-    <div><label class="flbl">2.2 Lấy bãi khác → hạ bãi khác (không LH)</label><input class="finp" type="number" id="c-t2" placeholder="900000"></div>
-    <div><label class="flbl">2.3 Một đầu Lạch Huyện</label><input class="finp" type="number" id="c-t3" placeholder="1400000"></div>
-    <div><label class="flbl">2.4 Cả 2 đầu Lạch Huyện</label><input class="finp" type="number" id="c-t4" placeholder="1600000"></div>
+    <div><label class="flbl">2.1 Lấy SITC → hạ bãi khác (không LH)</label><input class="finp" type="text" id="c-t1" placeholder="VD: 600000 hoặc 500000/800000" placeholder="600000"></div>
+    <div><label class="flbl">2.2 Lấy bãi khác → hạ bãi khác (không LH)</label><input class="finp" type="text" id="c-t2" placeholder="VD: 600000 hoặc 500000/800000" placeholder="900000"></div>
+    <div><label class="flbl">2.3 Một đầu Lạch Huyện</label><input class="finp" type="text" id="c-t3" placeholder="VD: 600000 hoặc 500000/800000" placeholder="1400000"></div>
+    <div><label class="flbl">2.4 Cả 2 đầu Lạch Huyện</label><input class="finp" type="text" id="c-t4" placeholder="VD: 600000 hoặc 500000/800000" placeholder="1600000"></div>
   </div>
   <div class="sec-div">🏠 Phí lưu kho</div>
   <div class="g2" style="margin-bottom:14px">
@@ -466,6 +466,17 @@ const SB=supabase.createClient(
 );
 let IS_ADMIN=true;
 const LH=new Set(['HICT','HTIT','HATECO','LẠCH HUYỆN','TIL','HHIT']);
+
+// Parse giá trucking dạng "600000" hoặc "500000/800000" (20'/40')
+function parseTruckingRate(val, is20){
+  if(!val||val==='0')return 0;
+  const s=String(val).trim();
+  const parts=s.split(/[\/\-]/);
+  if(parts.length===1) return +parts[0].replace(/[^0-9]/g,'')||0;
+  const rate20=+parts[0].replace(/[^0-9]/g,'')||0;
+  const rate40=+parts[1].replace(/[^0-9]/g,'')||0;
+  return is20?rate20:rate40;
+}
 const SITC=new Set(['SITC']);
 function getTT(p,l){const a=(p||'').toUpperCase().trim(),b=(l||'').toUpperCase().trim();if(LH.has(a)&&LH.has(b))return'2.4';if(LH.has(a)||LH.has(b))return'2.3';if(SITC.has(a))return'2.1';return'2.2';}
 const fmt=n=>n?Number(n).toLocaleString('vi-VN'):'—';
@@ -678,8 +689,8 @@ async function loadCustomers(){
     <td><strong>${c.name}</strong>${c.aliases?.length?`<br><small style="color:var(--txt3)">${c.aliases.join(', ')}</small>`:''}</td>
     <td class="num">${fmt(c.cfs_normal_rate)}</td><td class="num">${fmt(c.cfs_small_rate)}</td>
     <td class="num">${fmt(c.min_charge_20)||'—'}</td><td class="num">${fmt(c.min_charge_40)||'—'}</td>
-    <td class="num">${fmt(c.trucking_1)}</td><td class="num">${fmt(c.trucking_2)}</td>
-    <td class="num">${fmt(c.trucking_3)}</td><td class="num">${fmt(c.trucking_4)}</td>
+    <td style="font-size:12px">${c.trucking_1||'—'}</td><td style="font-size:12px">${c.trucking_2||'—'}</td>
+    <td style="font-size:12px">${c.trucking_3||'—'}</td><td style="font-size:12px">${c.trucking_4||'—'}</td>
     <td class="num">${fmt(c.storage_rate)}</td><td>${c.storage_free_days||14}d</td>
     <td class="num">${fmt(c.customs_fee)}</td><td>${c.vat_pct||8}%</td>
     <td style="font-size:12px;color:var(--txt3)">${c.price_valid_from||'—'}${c.price_valid_to?' → '+c.price_valid_to:''}</td>
@@ -704,6 +715,10 @@ function openCustModal(c=null){
     else if(id==='c-aliases') el.value=c?.aliases?.join(', ')||'';
     else if(id==='c-free') el.value=c?.storage_free_days||14;
     else if(id==='c-vat') el.value=c?.vat_pct||8;
+    else if(['c-t1','c-t2','c-t3','c-t4'].includes(id)){
+      const fmap={'c-t1':'trucking_1','c-t2':'trucking_2','c-t3':'trucking_3','c-t4':'trucking_4'};
+      el.value=c?.[fmap[id]]||'';
+    }
     else el.value=c?.[field]?.toString().slice(0,10)||c?.[field]||'';
   });
   discRows=[];document.getElementById('lolo-disc-rows').innerHTML='';
@@ -742,10 +757,10 @@ async function saveCustomer(){
     cfs_small_rate:+document.getElementById('c-cfs-s').value||0,
     min_charge_20:+document.getElementById('c-min20').value||0,
     min_charge_40:+document.getElementById('c-min40').value||0,
-    trucking_1:+document.getElementById('c-t1').value||0,
-    trucking_2:+document.getElementById('c-t2').value||0,
-    trucking_3:+document.getElementById('c-t3').value||0,
-    trucking_4:+document.getElementById('c-t4').value||0,
+    trucking_1:document.getElementById('c-t1').value.trim()||'0',
+    trucking_2:document.getElementById('c-t2').value.trim()||'0',
+    trucking_3:document.getElementById('c-t3').value.trim()||'0',
+    trucking_4:document.getElementById('c-t4').value.trim()||'0',
     storage_free_days:+document.getElementById('c-free').value||14,
     storage_rate:+document.getElementById('c-stor').value||0,
     customs_fee:+document.getElementById('c-cus').value||0,
@@ -771,7 +786,9 @@ function downloadCustTemplate(){
   const ws=XLSX.utils.aoa_to_sheet([
     ['Tên chuẩn','Alias (cách phẩy)','CFS Normal','CFS Small','Min 20\'','Min 40\'',
      'Truck 2.1','Truck 2.2','Truck 2.3','Truck 2.4','Lưu kho rate','Free days','Hải quan','VAT%','Hiệu lực từ','Đến ngày'],
-    ['SHIPCO','SHIPCO VN,SHIPCO-BUYER',55000,90000,0,0,600000,900000,1400000,1600000,5000,14,320000,8,'2026-01-01',''],
+    ['* Trucking: nhập 1 giá (VD: 600000) hoặc 20\'/40\' khác nhau (VD: 500000/800000)','','','','','','','','','','','','','','',''],
+    ['SHIPCO','SHIPCO VN,SHIPCO-BUYER',55000,90000,0,0,'600000','900000','1400000','1600000',5000,14,320000,8,'2026-01-01',''],
+    ['UPS','',55000,90000,0,0,'1548360/1829880','1548360/1829880','1548360/1829880','1548360/1829880',5000,14,320000,8,'2026-01-01',''],
   ]);
   ws['!cols']=Array(16).fill({wch:18});
   XLSX.utils.book_append_sheet(wb,ws,'Khach hang');
@@ -804,7 +821,8 @@ async function importCustomers(inp){
       aliases:String(r[1]||'').split(',').map(s=>s.trim()).filter(Boolean),
       cfs_normal_rate:+r[2]||0,cfs_small_rate:+r[3]||0,
       min_charge_20:+r[4]||0,min_charge_40:+r[5]||0,
-      trucking_1:+r[6]||0,trucking_2:+r[7]||0,trucking_3:+r[8]||0,trucking_4:+r[9]||0,
+      trucking_1:String(r[6]||'0').trim(),trucking_2:String(r[7]||'0').trim(),
+      trucking_3:String(r[8]||'0').trim(),trucking_4:String(r[9]||'0').trim(),
       storage_rate:+r[10]||0,storage_free_days:+r[11]||14,
       customs_fee:+r[12]||0,vat_pct:+r[13]||8,
       price_valid_from:excelDate(r[14]),price_valid_to:excelDate(r[15]),
@@ -1202,7 +1220,9 @@ async function runCalculate(){
       if(minC>0)cfsCntr=Math.max(cfsCntr,minC);
       cfsAmt+=cfsCntr;
       const tType=ti.type||getTT(ti.pickup,ti.pol);
-      const tRate=c?c['trucking_'+(tType.replace('2.',''))]||0:0;
+      const is20=(contType||'').includes('20');
+      const truckVal=c?c['trucking_'+(tType.replace('2.',''))]:null;
+      const tRate=parseTruckingRate(truckVal,is20);
       truckAmt+=tRate;
       const line=(ti.line||'').toUpperCase();
       const custDiscs=(loloDisc||[]).filter(d=>d.customer_id===c?.id);
