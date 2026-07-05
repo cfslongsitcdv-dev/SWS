@@ -793,13 +793,37 @@ async function delCust(id){if(!confirm('Xóa?'))return;await SB.from('debit_lolo
 function downloadCustTemplate(){
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet([
-    ['Tên chuẩn','Alias (cách phẩy)','CFS Normal','CFS Small','Min 20\'','Min 40\'',
-     'Truck 2.1 (VD: 600000 hoặc 500000/800000 cho 20/40)','Truck 2.2','Truck 2.3','Truck 2.4','Lưu kho rate','Free days','Hải quan','VAT%','Hiệu lực từ','Đến ngày'],
-    ['SHIPCO','SHIPCO VN,SHIPCO-BUYER',55000,90000,0,0,'600000','900000','1400000','1600000',5000,14,320000,8,'2026-01-01',''],
-    ['UPS','UPS VN',55000,90000,0,0,'1548360/1829880','1548360/1829880','1548360/1829880','1548360/1829880',5000,14,320000,8,'2026-01-01',''],
+    ['Tên chuẩn','Alias (cách phẩy)','CFS Normal','CFS Small','Min charge','',
+     'Truck 2.1','Truck 2.2','Truck 2.3','Truck 2.4','Lưu kho rate','Free days','Hải quan','VAT%','Hiệu lực từ','Đến ngày'],
+    ['SHIPCO','SHIPCO VN,SHIPCO-BUYER',55000,90000,'2000000/4000000','','600000','900000','1400000','1600000',5000,14,320000,8,'2026-01-01',''],
+    ['UPS','UPS VN',55000,90000,'2000000/4000000','','1548360/1829880','1548360/1829880','1548360/1829880','1548360/1829880',5000,14,320000,8,'2026-01-01',''],
   ]);
   ws['!cols']=Array(16).fill({wch:18});
   XLSX.utils.book_append_sheet(wb,ws,'Khach hang');
+  // Sheet hướng dẫn
+  const wsHD=XLSX.utils.aoa_to_sheet([
+    ['HƯỚNG DẪN NHẬP FILE KHÁCH HÀNG'],
+    [],
+    ['Cột','Mô tả','Ví dụ'],
+    ['Tên chuẩn','Tên khách hàng chính xác (bắt buộc)','SHIPCO'],
+    ['Alias','Tên khác trong file dữ liệu, cách nhau bằng dấu phẩy','SHIPCO VN, SHIPCO-BUYER'],
+    ['CFS Normal','Đơn giá CFS hàng thường >0.025 cbm/box (VND/CBM)','55000'],
+    ['CFS Small','Đơn giá CFS hàng nhỏ ≤0.025 cbm/box (VND/CBM)','90000'],
+    ['Min charge','Min charge VND/cont — nhập 1 giá hoặc 20-40 cách nhau bằng /','2000000/4000000'],
+    ['Truck 2.1~2.4','Giá trucking VND/cont — nhập 1 giá hoặc 20-40 cách nhau bằng /','600000 hoặc 500000/800000'],
+    ['Lưu kho rate','Đơn giá lưu kho VND/CBM/ngày','5000'],
+    ['Free days','Số ngày lưu kho miễn phí','14'],
+    ['Hải quan','Phí hải quan VND/cont','320000'],
+    ['VAT%','% VAT','8'],
+    ['Hiệu lực từ','Ngày bắt đầu hiệu lực giá (YYYY-MM-DD)','2026-01-01'],
+    ['Đến ngày','Ngày kết thúc hiệu lực (bỏ trống = không giới hạn)','2026-12-31'],
+    [],
+    ['LƯU Ý:','- Không xóa dòng tiêu đề (dòng 1)'],
+    ['','- Trucking: nếu 20 và 40 cùng giá thì chỉ cần nhập 1 số'],
+    ['','- Neu da co khach hang trong he thong, import se cap nhat de len'],
+  ]);
+  wsHD['!cols']=[{wch:16},{wch:50},{wch:25}];
+  XLSX.utils.book_append_sheet(wb,wsHD,'Huong dan');
   XLSX.writeFile(wb,'Template_KhachHang.xlsx');
 }
 
