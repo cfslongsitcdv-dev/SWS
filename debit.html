@@ -308,11 +308,9 @@ tr:hover td{background:#fafafa}
   <div class="g3" style="margin-bottom:14px">
     <div><label class="flbl">Normal &gt;0.025 cbm/box</label><input class="finp" type="number" id="c-cfs-n" placeholder="55000"></div>
     <div><label class="flbl">Small ≤0.025 cbm/box</label><input class="finp" type="number" id="c-cfs-s" placeholder="90000"></div>
-    <div><label class="flbl">Min charge 20' / 40'</label>
-      <div style="display:flex;gap:6px">
-        <input class="finp" type="number" id="c-min20" placeholder="20'">
-        <input class="finp" type="number" id="c-min40" placeholder="40'">
-      </div>
+    <div><label class="flbl">Min charge (VND/cont) — 20' / 40'</label>
+      <input class="finp" type="text" id="c-min20" placeholder="VD: 2000000/4000000 hoặc 2000000">
+      <small style="color:var(--txt3);font-size:11px;margin-top:3px;display:block">Nhập 1 giá cho cả 2 loại, hoặc 20'/40' cách nhau bằng /</small>
     </div>
   </div>
   <div class="sec-div">🚛 Phí vận chuyển (VND/cont)</div>
@@ -468,6 +466,15 @@ let IS_ADMIN=true;
 const LH=new Set(['HICT','HTIT','HATECO','LẠCH HUYỆN','TIL','HHIT']);
 
 // Parse giá trucking dạng "600000" hoặc "500000/800000" (20'/40')
+function parseRate(val, is20){
+  if(!val||val==='0')return 0;
+  const s=String(val).trim();
+  const parts=s.split(/[\/]/);
+  if(parts.length===1) return +parts[0].replace(/[^0-9]/g,'')||0;
+  const r20=+parts[0].replace(/[^0-9]/g,'')||0;
+  const r40=+parts[1].replace(/[^0-9]/g,'')||0;
+  return is20?r20:r40;
+}
 function parseTruckingRate(val, is20){
   if(!val||val==='0')return 0;
   const s=String(val).trim();
@@ -688,7 +695,7 @@ async function loadCustomers(){
   tbody.innerHTML=data.map(c=>`<tr>
     <td><strong>${c.name}</strong>${c.aliases?.length?`<br><small style="color:var(--txt3)">${c.aliases.join(', ')}</small>`:''}</td>
     <td class="num">${fmt(c.cfs_normal_rate)}</td><td class="num">${fmt(c.cfs_small_rate)}</td>
-    <td class="num">${fmt(c.min_charge_20)||'—'}</td><td class="num">${fmt(c.min_charge_40)||'—'}</td>
+    <td colspan="2" style="font-size:12px">${c.min_charge_20||'—'}</td>
     <td style="font-size:12px">${c.trucking_1||'—'}</td><td style="font-size:12px">${c.trucking_2||'—'}</td>
     <td style="font-size:12px">${c.trucking_3||'—'}</td><td style="font-size:12px">${c.trucking_4||'—'}</td>
     <td class="num">${fmt(c.storage_rate)}</td><td>${c.storage_free_days||14}d</td>
@@ -715,6 +722,8 @@ function openCustModal(c=null){
     else if(id==='c-aliases') el.value=c?.aliases?.join(', ')||'';
     else if(id==='c-free') el.value=c?.storage_free_days||14;
     else if(id==='c-vat') el.value=c?.vat_pct||8;
+    else if(id==='c-min20'){el.value=c?.min_charge_20||'';}
+    else if(id==='c-min40'){} // bỏ qua, gộp vào c-min20
     else if(['c-t1','c-t2','c-t3','c-t4'].includes(id)){
       const fmap={'c-t1':'trucking_1','c-t2':'trucking_2','c-t3':'trucking_3','c-t4':'trucking_4'};
       el.value=c?.[fmap[id]]||'';
@@ -755,8 +764,8 @@ async function saveCustomer(){
     price_valid_to:document.getElementById('c-to').value||null,
     cfs_normal_rate:+document.getElementById('c-cfs-n').value||0,
     cfs_small_rate:+document.getElementById('c-cfs-s').value||0,
-    min_charge_20:+document.getElementById('c-min20').value||0,
-    min_charge_40:+document.getElementById('c-min40').value||0,
+    min_charge_20:document.getElementById('c-min20').value.trim()||'0',
+    min_charge_40:document.getElementById('c-min20').value.trim()||'0',
     trucking_1:document.getElementById('c-t1').value.trim()||'0',
     trucking_2:document.getElementById('c-t2').value.trim()||'0',
     trucking_3:document.getElementById('c-t3').value.trim()||'0',
@@ -785,10 +794,9 @@ function downloadCustTemplate(){
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet([
     ['Tên chuẩn','Alias (cách phẩy)','CFS Normal','CFS Small','Min 20\'','Min 40\'',
-     'Truck 2.1','Truck 2.2','Truck 2.3','Truck 2.4','Lưu kho rate','Free days','Hải quan','VAT%','Hiệu lực từ','Đến ngày'],
-    ['* Trucking: nhập 1 giá (VD: 600000) hoặc 20\'/40\' khác nhau (VD: 500000/800000)','','','','','','','','','','','','','','',''],
+     'Truck 2.1 (VD: 600000 hoặc 500000/800000 cho 20/40)','Truck 2.2','Truck 2.3','Truck 2.4','Lưu kho rate','Free days','Hải quan','VAT%','Hiệu lực từ','Đến ngày'],
     ['SHIPCO','SHIPCO VN,SHIPCO-BUYER',55000,90000,0,0,'600000','900000','1400000','1600000',5000,14,320000,8,'2026-01-01',''],
-    ['UPS','',55000,90000,0,0,'1548360/1829880','1548360/1829880','1548360/1829880','1548360/1829880',5000,14,320000,8,'2026-01-01',''],
+    ['UPS','UPS VN',55000,90000,0,0,'1548360/1829880','1548360/1829880','1548360/1829880','1548360/1829880',5000,14,320000,8,'2026-01-01',''],
   ]);
   ws['!cols']=Array(16).fill({wch:18});
   XLSX.utils.book_append_sheet(wb,ws,'Khach hang');
@@ -816,7 +824,7 @@ async function importCustomers(inp){
     const wb=XLSX.read(e.target.result,{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''}).slice(1).filter(r=>r[0]);
-    const data=rows.map(r=>({
+    const data=rows.filter(r=>r[0]&&!String(r[0]).startsWith('*')).map(r=>({
       name:String(r[0]).trim(),
       aliases:String(r[1]||'').split(',').map(s=>s.trim()).filter(Boolean),
       cfs_normal_rate:+r[2]||0,cfs_small_rate:+r[3]||0,
@@ -1215,9 +1223,12 @@ async function runCalculate(){
         }
       });
       cbmStd+=cbmN;cbmSmall+=cbmS;storAmt+=storC;
+      const totalCbmCntr=cbmN+cbmS;
+      // Min charge: ngưỡng CBM — 20' dưới 20cbm, 40' dưới 40cbm
+      const cbmThreshold=is20?20:40;
+      const minCharge=parseRate(is20?c?.min_charge_20:c?.min_charge_40, is20);
       let cfsCntr=(cbmN*(c?.cfs_normal_rate||0))+(cbmS*(c?.cfs_small_rate||0));
-      const minC=is20?(c?.min_charge_20||0):(c?.min_charge_40||0);
-      if(minC>0)cfsCntr=Math.max(cfsCntr,minC);
+      if(minCharge>0 && totalCbmCntr<cbmThreshold) cfsCntr=minCharge;
       cfsAmt+=cfsCntr;
       const tType=ti.type||getTT(ti.pickup,ti.pol);
       const truckVal=c?c['trucking_'+(tType.replace('2.',''))]:null;
