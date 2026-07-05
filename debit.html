@@ -852,12 +852,12 @@ async function importCustomers(inp){
       name:String(r[0]).trim(),
       aliases:String(r[1]||'').split(',').map(s=>s.trim()).filter(Boolean),
       cfs_normal_rate:+r[2]||0,cfs_small_rate:+r[3]||0,
-      min_charge_20:+r[4]||0,min_charge_40:+r[5]||0,
-      trucking_1:String(r[6]||'0').trim(),trucking_2:String(r[7]||'0').trim(),
-      trucking_3:String(r[8]||'0').trim(),trucking_4:String(r[9]||'0').trim(),
-      storage_rate:+r[10]||0,storage_free_days:+r[11]||14,
-      customs_fee:+r[12]||0,vat_pct:+r[13]||8,
-      price_valid_from:excelDate(r[14]),price_valid_to:excelDate(r[15]),
+      min_charge_20:String(r[4]||'0').trim(),min_charge_40:String(r[4]||'0').trim(),
+      trucking_1:String(r[5]||'0').trim(),trucking_2:String(r[6]||'0').trim(),
+      trucking_3:String(r[7]||'0').trim(),trucking_4:String(r[8]||'0').trim(),
+      storage_rate:+r[9]||0,storage_free_days:+r[10]||14,
+      customs_fee:+r[11]||0,vat_pct:+r[12]||8,
+      price_valid_from:excelDate(r[13]),price_valid_to:excelDate(r[15]),
     }));
     const{error}=await SB.from('debit_customers').upsert(data,{onConflict:'name'});
     if(error){notif('Lỗi: '+error.message,'n-err');return;}
