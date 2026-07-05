@@ -793,10 +793,10 @@ async function delCust(id){if(!confirm('Xóa?'))return;await SB.from('debit_lolo
 function downloadCustTemplate(){
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet([
-    ['Tên chuẩn','Alias (cách phẩy)','CFS Normal','CFS Small','Min charge','',
+    ['Tên chuẩn','Alias (cách phẩy)','CFS Normal','CFS Small','Min charge',
      'Truck 2.1','Truck 2.2','Truck 2.3','Truck 2.4','Lưu kho rate','Free days','Hải quan','VAT%','Hiệu lực từ','Đến ngày'],
-    ['SHIPCO','SHIPCO VN,SHIPCO-BUYER',55000,90000,'2000000/4000000','','600000','900000','1400000','1600000',5000,14,320000,8,'2026-01-01',''],
-    ['UPS','UPS VN',55000,90000,'2000000/4000000','','1548360/1829880','1548360/1829880','1548360/1829880','1548360/1829880',5000,14,320000,8,'2026-01-01',''],
+    ['SHIPCO','SHIPCO VN,SHIPCO-BUYER',55000,90000,'2000000/4000000','600000','900000','1400000','1600000',5000,14,320000,8,'2026-01-01',''],
+    ['UPS','UPS VN',55000,90000,'2000000/4000000','1548360/1829880','1548360/1829880','1548360/1829880','1548360/1829880',5000,14,320000,8,'2026-01-01',''],
   ]);
   ws['!cols']=Array(16).fill({wch:18});
   XLSX.utils.book_append_sheet(wb,ws,'Khach hang');
