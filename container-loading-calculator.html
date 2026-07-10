@@ -605,19 +605,98 @@ function packContainer(container, rawItems){
       }
     });
   });
-  // sort largest volume first (best practice for bin packing heuristics)
-  // Sort: kiện lớn trước, nonStack/topLoad sau cùng (để tối ưu không gian rồi mới block)
-  units.sort((a,b)=>{
-    const aBlock = (a.nonStack||a.topLoad) ? 1 : 0;
-    const bBlock = (b.nonStack||b.topLoad) ? 1 : 0;
-    if(aBlock !== bBlock) return aBlock - bBlock;
-    return (b.L*b.W*b.H) - (a.L*a.W*a.H);
-  });
+  // ── COLUMN PACKING cho carton xoay tự do ──
+  // Gom carton cùng kích thước thành cột cao → tiết kiệm diện tích nền
+  (function groupCartons(){
+    // Tìm các nhóm carton 'free' (không topLoad, không nonStack)
+    const freeCartons = units.filter(u=>u.rotMode==='free'&&!u.topLoad&&!u.nonStack);
+    const others = units.filter(u=>!(u.rotMode==='free'&&!u.topLoad&&!u.nonStack));
+    if(!freeCartons.length){return;}
 
-  let freeSpaces = [{x:0,y:0,z:0,w:container.L,h:container.H,d:container.W}];
-  let placed = [];
-  let unplaced = [];
-  let totalWeight = 0;
+    // Nhóm theo srcId (cùng lô hàng = cùng kích thước)
+    const groups={};
+    freeCartons.forEach(u=>{
+      const key=u.srcId+'_'+[u.L,u.W,u.H].sort().join('x');
+      if(!groups[key])groups[key]={units:[],u};
+      groups[key].units.push(u);
+    });
+
+    // Với mỗi nhóm: tìm orientation xếp cao nhất (maxH), gom thành cột
+    const columnUnits=[];
+    Object.values(groups).forEach(g=>{
+      const u=g.u;
+      const dims=[u.L,u.W,u.H];
+      // Tìm orientation cho max tầng (dùng chiều nhỏ nhất làm H để xếp nhiều tầng)
+      const perms=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]];
+      let bestOri=null,bestTiers=0;
+      perms.forEach(p=>{
+        const [dL,dH,dW]=[dims[p[0]],dims[p[1]],dims[p[2]]];
+        const tiers=Math.floor(container.H/dH);
+        if(tiers>bestTiers){bestTiers=tiers;bestOri=[dL,dH,dW];}
+      });
+      if(!bestOri||bestTiers<1){
+        // Không gom được, giữ nguyên từng kiện
+        g.units.forEach(u=>columnUnits.push(u));
+        return;
+      }
+      const [cL,cH,cW]=bestOri;
+      // Gom thành cột, mỗi cột bestTiers kiện
+      const totalQty=g.units.length;
+      let idx=0;
+      while(idx<totalQty){
+        const tiersInCol=Math.min(bestTiers,totalQty-idx);
+        const colH=cH*tiersInCol;
+        const totalW=g.units.slice(idx,idx+tiersInCol).reduce((s,u)=>s+u.weight,0);
+        columnUnits.push({
+          srcId:u.srcId,name:u.name,color:u.color,
+          L:cL,H:colH,W:cW,
+          weight:totalW,
+          rotMode:'none', // đã chọn orientation, không xoay thêm
+          nonStack:false,topLoad:false,
+          _isColumn:true,_qty:tiersInCol
+        });
+        idx+=tiersInCol;
+      }
+    });
+
+    // Rebuild units: cột carton + kiện khác
+    units.length=0;
+    columnUnits.forEach(u=>units.push(u));
+    others.forEach(u=>units.push(u));
+  })();
+
+  // Gộp các free-space liền kề, cùng kích thước 2 trục còn lại → thành 1 khối lớn hơn.
+  // Guillotine cắt vụn không gian sau mỗi lần đặt kiện; nếu không gộp lại, các mảnh nhỏ
+  // rời rạc sẽ không đủ chỗ cho kiện lớn dù tổng thể tích trống vẫn còn nhiều.
+  function mergeFreeSpaces(spaces){
+    const EPS = 1e-6;
+    let merged = true;
+    while(merged){
+      merged = false;
+      outer:
+      for(let i=0;i<spaces.length;i++){
+        for(let j=i+1;j<spaces.length;j++){
+          const a=spaces[i], b=spaces[j];
+          // gộp theo trục X (cần y,h,z,d trùng nhau)
+          if(Math.abs(a.y-b.y)<EPS && Math.abs(a.h-b.h)<EPS && Math.abs(a.z-b.z)<EPS && Math.abs(a.d-b.d)<EPS){
+            if(Math.abs(a.x+a.w-b.x)<EPS){ a.w+=b.w; spaces.splice(j,1); merged=true; break outer; }
+            if(Math.abs(b.x+b.w-a.x)<EPS){ a.x=b.x; a.w+=b.w; spaces.splice(j,1); merged=true; break outer; }
+          }
+          // gộp theo trục Y (cần x,w,z,d trùng nhau)
+          if(Math.abs(a.x-b.x)<EPS && Math.abs(a.w-b.w)<EPS && Math.abs(a.z-b.z)<EPS && Math.abs(a.d-b.d)<EPS){
+            if(Math.abs(a.y+a.h-b.y)<EPS){ a.h+=b.h; spaces.splice(j,1); merged=true; break outer; }
+            if(Math.abs(b.y+b.h-a.y)<EPS){ a.y=b.y; a.h+=b.h; spaces.splice(j,1); merged=true; break outer; }
+          }
+          // gộp theo trục Z (cần x,w,y,h trùng nhau)
+          if(Math.abs(a.x-b.x)<EPS && Math.abs(a.w-b.w)<EPS && Math.abs(a.y-b.y)<EPS && Math.abs(a.h-b.h)<EPS){
+            if(Math.abs(a.z+a.d-b.z)<EPS){ a.d+=b.d; spaces.splice(j,1); merged=true; break outer; }
+            if(Math.abs(b.z+b.d-a.z)<EPS){ a.z=b.z; a.d+=b.d; spaces.splice(j,1); merged=true; break outer; }
+          }
+        }
+      }
+    }
+    return spaces;
+  }
 
   function orientations(u){
     if(u.rotMode === 'none'){
@@ -643,59 +722,135 @@ function packContainer(container, rawItems){
     return out;
   }
 
-  for(const u of units){
-    if(totalWeight + u.weight > container.maxW){
-      unplaced.push({...u, reason:'Vượt tải trọng'});
-      continue;
-    }
-    let best = null; // {fsIndex, ow,oh,od, vol}
-    for(let fi=0; fi<freeSpaces.length; fi++){
-      const fs = freeSpaces[fi];
-      const fsVol = fs.w*fs.h*fs.d;
-      for(const [ow,oh,od] of orientations(u)){
-        if(ow<=fs.w+1e-6 && oh<=fs.h+1e-6 && od<=fs.d+1e-6){
-          if(!best || fsVol < best.fsVol){
-            best = {fi, ow,oh,od, fsVol};
+  // Chạy toàn bộ vòng đặt kiện cho MỘT thứ tự units cho trước, trả về kết quả đầy đủ.
+  function attemptPack(orderedUnits){
+    let freeSpaces = [{x:0,y:0,z:0,w:container.L,h:container.H,d:container.W}];
+    let placed = [];
+    let unplaced = [];
+    let totalWeight = 0;
+
+    for(const u of orderedUnits){
+      if(totalWeight + u.weight > container.maxW){
+        unplaced.push({...u, reason:'Vượt tải trọng'});
+        continue;
+      }
+      let best = null; // {fsIndex, ow,oh,od, vol}
+      for(let fi=0; fi<freeSpaces.length; fi++){
+        const fs = freeSpaces[fi];
+        const fsVol = fs.w*fs.h*fs.d;
+        for(const [ow,oh,od] of orientations(u)){
+          if(ow<=fs.w+1e-6 && oh<=fs.h+1e-6 && od<=fs.d+1e-6){
+            if(u.topLoad){
+              // TopLoad: ưu tiên vị trí CAO nhất (thực sự nằm trên cùng),
+              // khít thể tích chỉ dùng để phá thế bằng nhau
+              if(!best || fs.y > best.fsY + 1e-6 ||
+                 (Math.abs(fs.y-best.fsY) < 1e-6 && fsVol < best.fsVol)){
+                best = {fi, ow,oh,od, fsVol, fsY: fs.y};
+              }
+            } else {
+              if(!best || fsVol < best.fsVol){
+                best = {fi, ow,oh,od, fsVol, fsY: fs.y};
+              }
+            }
           }
         }
       }
-    }
-    if(!best){
-      unplaced.push({...u, reason:'Không vừa không gian còn lại'});
-      continue;
-    }
-    const fs = freeSpaces[best.fi];
-    const {ow,oh,od} = best;
-    placed.push({
-      name:u.name, color:u.color, srcId:u.srcId,
-      x:fs.x, y:fs.y, z:fs.z, L:ow, H:oh, W:od, weight:u.weight,
-      nonStack: u.nonStack||false, topLoad: u.topLoad||false
-    });
-    totalWeight += u.weight;
+      if(!best){
+        if(u._isColumn){
+          // Expand cột thành từng kiện riêng để báo cáo
+          for(let i=0;i<u._qty;i++) unplaced.push({...u,L:u.L,H:u.H/u._qty,W:u.W,reason:'Không vừa không gian còn lại'});
+        } else {
+          unplaced.push({...u, reason:'Không vừa không gian còn lại'});
+        }
+        continue;
+      }
+      const fs = freeSpaces[best.fi];
+      const {ow,oh,od} = best;
+      if(u._isColumn){
+        // Expand cột thành từng kiện riêng để hiển thị 3D đẹp hơn
+        const singleH = oh/u._qty;
+        for(let i=0;i<u._qty;i++){
+          placed.push({
+            name:u.name, color:u.color, srcId:u.srcId,
+            x:fs.x, y:fs.y+i*singleH, z:fs.z,
+            L:ow, H:singleH, W:od, weight:u.weight/u._qty,
+            nonStack:false, topLoad:false
+          });
+        }
+      } else {
+        placed.push({
+          name:u.name, color:u.color, srcId:u.srcId,
+          x:fs.x, y:fs.y, z:fs.z, L:ow, H:oh, W:od, weight:u.weight,
+          nonStack: u.nonStack||false, topLoad: u.topLoad||false
+        });
+      }
+      totalWeight += u.weight;
 
-    // guillotine split TRƯỚC (tạo children từ fs gốc)
-    freeSpaces.splice(best.fi,1);
-    const childA = {x:fs.x+ow, y:fs.y, z:fs.z, w:fs.w-ow, h:fs.h, d:fs.d};
-    const childB = {x:fs.x, y:fs.y+oh, z:fs.z, w:ow, h:fs.h-oh, d:fs.d};
-    const childC = {x:fs.x, y:fs.y, z:fs.z+od, w:ow, h:oh, d:fs.d-od};
-    [childA,childB,childC].forEach(c=>{
-      if(c.w>1 && c.h>1 && c.d>1) freeSpaces.push(c);
-    });
+      // guillotine split: remove fs TRƯỚC (dùng đúng index gốc, chưa bị lệch bởi filter)
+      freeSpaces.splice(best.fi,1);
+      const childA = {x:fs.x+ow, y:fs.y, z:fs.z, w:fs.w-ow, h:fs.h, d:fs.d}; // remainder along length
+      const childB = {x:fs.x, y:fs.y+oh, z:fs.z, w:ow, h:fs.h-oh, d:fs.d};   // remainder along height (ngay TRÊN kiện)
+      const childC = {x:fs.x, y:fs.y, z:fs.z+od, w:ow, h:oh, d:fs.d-od};    // remainder along width
 
-    // NonStack hoặc TopLoad: xóa free space nằm trực tiếp phía trên kiện
-    // Chỉ xóa space overlap cả X và Z với kiện VÀ nằm phía trên
-    if(u.nonStack || u.topLoad){
-      const px=fs.x, pyTop=fs.y+oh, pz=fs.z, pL=ow, pW=od;
-      freeSpaces = freeSpaces.filter(sp => {
-        const overlapX = sp.x < px+pL-1e-6 && sp.x+sp.w > px+1e-6;
-        const overlapZ = sp.z < pz+pW-1e-6 && sp.z+sp.d > pz+1e-6;
-        const above = sp.y >= pyTop-1e-6;
-        return !(overlapX && overlapZ && above);
+      // NonStack/TopLoad: không ai được đè lên trên → không add lại childB (khoảng trống ngay trên kiện)
+      const isBlocking = u.nonStack || u.topLoad;
+      [childA, isBlocking ? null : childB, childC].forEach(c=>{
+        if(c && c.w>1 && c.h>1 && c.d>1) freeSpaces.push(c);
       });
+
+      if(isBlocking){
+        // Phòng hờ: lọc thêm các free-space còn lại (nếu có) đang chồng vùng phía trên kiện này
+        const px=fs.x, py=fs.y+oh, pz=fs.z, pL=ow, pW=od;
+        freeSpaces = freeSpaces.filter(sp =>
+          sp.y+sp.h <= py+1e-6 ||   // space hoàn toàn bên dưới
+          sp.x+sp.w <= px+1e-6 ||   // space hoàn toàn bên trái
+          sp.x >= px+pL-1e-6 ||     // space hoàn toàn bên phải
+          sp.z+sp.d <= pz+1e-6 ||   // space hoàn toàn phía trước
+          sp.z >= pz+pW-1e-6        // space hoàn toàn phía sau
+        );
+      }
+
+      // Gộp free-space vụn lại sau mỗi lần đặt kiện, giảm phân mảnh
+      freeSpaces = mergeFreeSpaces(freeSpaces);
+    }
+
+    const usedVol = placed.reduce((s,p)=>s+p.L*p.H*p.W,0);
+    return {placed, unplaced, totalWeight, usedVol};
+  }
+
+  // ── Thử nhiều chiến lược sắp xếp, chọn kết quả xếp được NHIỀU kiện nhất ──
+  // (fewer unplaced trước, rồi đến usedVol cao hơn nếu hòa)
+  function byVolDesc(a,b){ return (b.L*b.W*b.H) - (a.L*a.W*a.H); }
+  function byBlockThenVolDesc(a,b){
+    const aBlock = (a.nonStack||a.topLoad) ? 1 : 0;
+    const bBlock = (b.nonStack||b.topLoad) ? 1 : 0;
+    if(aBlock !== bBlock) return aBlock - bBlock;
+    if(aBlock===1 && bBlock===1) return Math.max(b.L,b.W) - Math.max(a.L,a.W);
+    return (b.L*b.W*b.H) - (a.L*a.W*a.H);
+  }
+  function byBlockThenVolDescMild(a,b){
+    // như trên, nhưng chỉ đẩy các kiện topLoad/nonStack NHỎ xuống cuối; kiện to vẫn xếp theo thể tích chung
+    const bigVol = container.L*container.H*container.W*0.02; // ngưỡng ~2% thể tích cont
+    const aBlock = (a.nonStack||a.topLoad) && (a.L*a.W*a.H < bigVol) ? 1 : 0;
+    const bBlock = (b.nonStack||b.topLoad) && (b.L*b.W*b.H < bigVol) ? 1 : 0;
+    if(aBlock !== bBlock) return aBlock - bBlock;
+    return (b.L*b.W*b.H) - (a.L*a.W*a.H);
+  }
+  function byFootprintDesc(a,b){ return (b.L*b.W) - (a.L*a.W); }
+
+  const strategies = [byBlockThenVolDesc, byVolDesc, byBlockThenVolDescMild, byFootprintDesc];
+  let bestResult = null;
+  for(const cmp of strategies){
+    const ordered = units.slice().sort(cmp);
+    const r = attemptPack(ordered);
+    if(!bestResult ||
+       r.unplaced.length < bestResult.unplaced.length ||
+       (r.unplaced.length === bestResult.unplaced.length && r.usedVol > bestResult.usedVol)){
+      bestResult = r;
     }
   }
 
-  const usedVol = placed.reduce((s,p)=>s+p.L*p.H*p.W,0);
+  const {placed, unplaced, totalWeight, usedVol} = bestResult;
   const containerVol = container.L*container.H*container.W;
 
   return {
