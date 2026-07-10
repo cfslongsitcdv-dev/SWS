@@ -672,26 +672,27 @@ function packContainer(container, rawItems){
       nonStack: u.nonStack||false, topLoad: u.topLoad||false
     });
     totalWeight += u.weight;
-    // NonStack hoặc TopLoad: không cho phép đặt bất kỳ kiện nào lên trên
-    if(u.nonStack || u.topLoad){
-      const px=fs.x, py=fs.y+oh, pz=fs.z, pL=ow, pW=od;
-      freeSpaces = freeSpaces.filter(sp =>
-        sp.y+sp.h <= py+1e-6 ||   // space hoàn toàn bên dưới
-        sp.x+sp.w <= px+1e-6 ||   // space hoàn toàn bên trái
-        sp.x >= px+pL-1e-6 ||     // space hoàn toàn bên phải
-        sp.z+sp.d <= pz+1e-6 ||   // space hoàn toàn phía trước
-        sp.z >= pz+pW-1e-6        // space hoàn toàn phía sau
-      );
-    }
 
-    // guillotine split: remove fs, add up to 3 children
+    // guillotine split TRƯỚC (tạo children từ fs gốc)
     freeSpaces.splice(best.fi,1);
-    const childA = {x:fs.x+ow, y:fs.y, z:fs.z, w:fs.w-ow, h:fs.h, d:fs.d}; // remainder along length
-    const childB = {x:fs.x, y:fs.y+oh, z:fs.z, w:ow, h:fs.h-oh, d:fs.d};   // remainder along height
-    const childC = {x:fs.x, y:fs.y, z:fs.z+od, w:ow, h:oh, d:fs.d-od};    // remainder along width
+    const childA = {x:fs.x+ow, y:fs.y, z:fs.z, w:fs.w-ow, h:fs.h, d:fs.d};
+    const childB = {x:fs.x, y:fs.y+oh, z:fs.z, w:ow, h:fs.h-oh, d:fs.d};
+    const childC = {x:fs.x, y:fs.y, z:fs.z+od, w:ow, h:oh, d:fs.d-od};
     [childA,childB,childC].forEach(c=>{
       if(c.w>1 && c.h>1 && c.d>1) freeSpaces.push(c);
     });
+
+    // NonStack hoặc TopLoad: xóa free space nằm trực tiếp phía trên kiện
+    // Chỉ xóa space overlap cả X và Z với kiện VÀ nằm phía trên
+    if(u.nonStack || u.topLoad){
+      const px=fs.x, pyTop=fs.y+oh, pz=fs.z, pL=ow, pW=od;
+      freeSpaces = freeSpaces.filter(sp => {
+        const overlapX = sp.x < px+pL-1e-6 && sp.x+sp.w > px+1e-6;
+        const overlapZ = sp.z < pz+pW-1e-6 && sp.z+sp.d > pz+1e-6;
+        const above = sp.y >= pyTop-1e-6;
+        return !(overlapX && overlapZ && above);
+      });
+    }
   }
 
   const usedVol = placed.reduce((s,p)=>s+p.L*p.H*p.W,0);
