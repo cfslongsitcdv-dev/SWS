@@ -193,8 +193,9 @@ tr:hover td{background:#fafafa}
 
 <!-- CUSTOMERS -->
 <div id="tab-customers" class="main" style="display:none">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap">
     <h2 style="font-size:18px;font-weight:700">👥 Khách hàng & Đơn giá</h2>
+    <input class="finp" id="cust-search" placeholder="🔍 Tìm khách hàng..." style="max-width:260px" oninput="filterCustomers()">
     <div style="display:flex;gap:8px">
       <button class="btn btn-o" onclick="downloadCustTemplate()">📥 Tải file mẫu</button>
       <button class="btn btn-o" onclick="document.getElementById('cust-import-input').click()">📂 Import Excel
@@ -386,7 +387,7 @@ tr:hover td{background:#fafafa}
   <div class="g2" style="margin-bottom:12px">
     <div><label class="flbl">Đơn vị</label>
       <select class="finp" id="cat-unit">
-        <option>CONT</option><option>LÔ</option><option>PALLET</option><option>CARTON</option><option>TEM</option><option>DÂY</option><option>GIỜ</option><option>CHUYẾN</option>
+        <option>CONT</option><option>LÔ</option><option>PALLET</option><option>CARTON</option><option>TEM</option><option>DÂY</option><option>GIỜ</option><option>CHUYẾN</option><option>TẤM</option><option>NAN</option><option>GIÁ</option><option>KIỆN</option><option>CBM</option>
       </select>
     </div>
     <div><label class="flbl">Vendor</label><input class="finp" id="cat-vendor" placeholder="Tên vendor"></div>
@@ -688,12 +689,26 @@ async function loadAllCusts(){
   });
 }
 
+let custDataCache=[];
 async function loadCustomers(){
   const{data}=await SB.from('debit_customers').select('*').order('name');
+  custDataCache=data||[];
+  renderCustomerRows(custDataCache);
+}
+function filterCustomers(){
+  const q=(document.getElementById('cust-search').value||'').trim().toLowerCase();
+  if(!q){renderCustomerRows(custDataCache);return;}
+  const filtered=custDataCache.filter(c=>{
+    const hay=[c.name,...(c.aliases||[])].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+  renderCustomerRows(filtered);
+}
+function renderCustomerRows(data){
   const tbody=document.getElementById('cust-list');
   if(!data?.length){tbody.innerHTML='<tr><td colspan="15" style="text-align:center;color:var(--txt3);padding:36px">Chưa có khách — bấm "+ Thêm"</td></tr>';return;}
   tbody.innerHTML=data.map(c=>`<tr>
-    <td><strong>${c.name}</strong>${c.aliases?.length?`<br><small style="color:var(--txt3)">${c.aliases.join(', ')}</small>`:''}</td>
+    <td style="white-space:nowrap"><strong>${c.name}</strong>${c.aliases?.length?` <small style="color:var(--txt3)">(${c.aliases.join(', ')})</small>`:''}</td>
     <td class="num">${fmt(c.cfs_normal_rate)}</td><td class="num">${fmt(c.cfs_small_rate)}</td>
     <td colspan="2" style="font-size:12px">${c.min_charge_20||'—'}</td>
     <td style="font-size:12px">${c.trucking_1||'—'}</td><td style="font-size:12px">${c.trucking_2||'—'}</td>
