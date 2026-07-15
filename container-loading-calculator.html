@@ -327,6 +327,7 @@ input[type=number]{font-family:var(--mono);}
           <option value="20DC">20DC – Container khô 20'</option>
           <option value="40DC">40DC – Container khô 40'</option>
           <option value="40HC" selected>40HC – Container cao 40'</option>
+          <option value="45HC">45HC – Container cao 45'</option>
           <option value="custom">Tùy chỉnh kích thước</option>
         </select>
       </div>
@@ -434,6 +435,7 @@ const PRESETS = {
   "20DC": {L:5898, W:2352, H:2393, maxW:28200, label:"20DC – Container khô 20'"},
   "40DC": {L:12032,W:2352, H:2393, maxW:26700, label:"40DC – Container khô 40'"},
   "40HC": {L:12032,W:2352, H:2698, maxW:26580, label:"40HC – Container cao 40'"},
+  "45HC": {L:13556,W:2352, H:2698, maxW:29600, label:"45HC – Container cao 45'"},
 };
 
 const COLORS = ["#ff8a3d","#2dd4bf","#60a5fa","#f472b6","#a78bfa","#fbbf24","#34d399","#fb7185","#38bdf8","#facc15"];
@@ -605,6 +607,10 @@ function packContainer(container, rawItems){
       }
     });
   });
+  // Chốt tổng số kiện THẬT (từng kiện vật lý) trước khi gom cột — vì bước gom cột
+  // bên dưới sẽ bó nhiều kiện free-rotation thành 1 "đơn vị cột", làm units.length
+  // không còn phản ánh đúng tổng số kiện nữa (dẫn đến hiện "12/8" sai lệch trên UI).
+  const totalRequestedUnits = units.length;
   // ── COLUMN PACKING cho carton xoay tự do ──
   // Gom carton cùng kích thước thành cột cao → tiết kiệm diện tích nền
   (function groupCartons(){
@@ -856,7 +862,7 @@ function packContainer(container, rawItems){
   return {
     placed, unplaced, totalWeight,
     volPct: containerVol>0 ? (usedVol/containerVol*100) : 0,
-    totalUnits: units.length,
+    totalUnits: totalRequestedUnits,
     placedCount: placed.length
   };
 }
