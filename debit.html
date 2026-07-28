@@ -690,7 +690,7 @@ async function loadAllCusts(){
   const{data}=await SB.from('debit_customers').select('id,name').order('name');
   ['calc-cust','si-cust','item-cust'].forEach(id=>{
     const sel=document.getElementById(id);if(!sel)return;
-    const first=id==='calc-cust'?'<option value="">Tất cả</option>':'<option value="">— Chọn —</option>';
+    const first=(id==='calc-cust'||id==='si-cust')?'<option value="">Tất cả</option>':'<option value="">— Chọn —</option>';
     sel.innerHTML=first+(data||[]).map(c=>`<option value="${c.name}" data-id="${c.id}">${c.name}</option>`).join('');
   });
 }
@@ -1083,7 +1083,7 @@ async function loadSurItems(){
     <td>${s.quantity||1}</td>
     <td style="color:var(--txt3)">${s.unit||'—'}</td>
     <td class="num">${fmt(s.price_sell)}</td>
-    <td class="num" style="color:var(--txt3);display:${IS_ADMIN?'table-cell':'none'}">${fmt(s.price_cost)}</td>
+    <td class="num" style="color:var(--txt3);display:${IS_ADMIN?'table-cell':'none'}">${fmt(Math.round((s.price_cost||0)*(s.quantity||1)))}</td>
     <td class="num" style="color:var(--green);font-weight:600">${fmt(Math.round((s.price_sell||0)*(s.quantity||1)))}</td>
     <td style="color:var(--txt2);font-size:12px">${s.note||'—'}</td>
     <td><span class="badge ${s.status==='confirmed'?'b-g':'b-a'}">${s.status==='confirmed'?'✅ Xác nhận':'⏳ Chờ'}</span></td>
