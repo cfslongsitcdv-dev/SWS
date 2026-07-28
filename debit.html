@@ -251,6 +251,7 @@ tr:hover td{background:#fafafa}
         <div><label class="flbl">Năm</label><input class="finp" type="number" id="si-year" value="2026" style="width:90px"></div>
         <button class="btn btn-o" onclick="loadSurItems()">🔍 Lọc</button>
         <button class="btn btn-p" onclick="openItemModal()">+ Thêm phát sinh</button>
+        <button class="btn btn-o" onclick="resyncContLinks()">🔄 Đồng bộ lại Cont</button>
         <button class="btn btn-o" id="export-items-btn" style="display:none" onclick="exportSurItems()">📥 Xuất Excel</button>
         <button class="btn btn-amber" id="confirm-all-btn" style="display:none" onclick="confirmAllItems()">✅ Xác nhận SL T<span id="confirm-month-label"></span></button>
         <button class="btn btn-g" id="confirm-vendor-btn" style="display:none" onclick="confirmVendorItems()">🏭 Xác nhận SL Vendor</button>
@@ -429,11 +430,15 @@ tr:hover td{background:#fafafa}
     </div>
   </div>
   <div class="g2" style="margin-bottom:12px">
-    <div><label class="flbl">Loại dịch vụ *</label>
-      <select class="finp" id="item-service" onchange="onServiceChange()">
+    <div style="position:relative">
+      <label class="flbl">Loại dịch vụ *</label>
+      <input class="finp" id="item-service-search" placeholder="Gõ để tìm dịch vụ (vd: đóng pallet)..." autocomplete="off"
+             oninput="filterServiceOptions()" onfocus="filterServiceOptions()" onblur="setTimeout(hideServiceDropdown,150)">
+      <select id="item-service" style="display:none" onchange="onServiceChange()">
         <option value="">— Chọn dịch vụ —</option>
         <option value="OTHER">🔧 Phí khác (nhập tay)</option>
       </select>
+      <div id="item-service-list" style="display:none;position:absolute;z-index:50;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);margin-top:2px"></div>
     </div>
     <div id="item-other-wrap" style="display:none"><label class="flbl">Tên phí khác</label><input class="finp" id="item-other-name" placeholder="Diễn giải..."></div>
   </div>
@@ -503,7 +508,7 @@ function showTab(t,btn){
   if(t==='customers'){loadCustomers();loadAllCusts();}
   if(t==='fees')loadLoloFees();
   if(t==='calculate')loadAllCusts();
-  if(t==='surcharge'){loadCatalog();loadAllCusts();loadVendors();}
+  if(t==='surcharge'){loadCatalog();loadAllCusts();loadVendors();loadCustAliasMap();}
 }
 function showSurTab(t,btn){
   document.querySelectorAll('#tab-surcharge [id^="sur-"]').forEach(e=>e.style.display='none');
@@ -1123,10 +1128,89 @@ function exportSurItems(){
   XLSX.writeFile(wb,`PhuPhi_T${m}${y}.xlsx`);
 }
 
+let custAliasMap={};
+async function loadCustAliasMap(){
+  const{data}=await SB.from('debit_customers').select('name,aliases');
+  custAliasMap={};
+  (data||[]).forEach(c=>{
+    custAliasMap[c.name.toUpperCase()]=c.name;
+    (c.aliases||[]).forEach(a=>{if(a)custAliasMap[a.toUpperCase()]=c.name;});
+  });
+}
+
 async function lookupCntr(po){
   if(!po||po.length<5){document.getElementById('item-cntr').value='';return;}
-  const{data}=await SB.from('debit_raw_data').select('cntr_no').eq('po',po).limit(1);
-  document.getElementById('item-cntr').value=data?.[0]?.cntr_no||'';
+  const{data}=await SB.from('debit_raw_data').select('cntr_no,factory,start_time_out').eq('po',po).limit(1);
+  const row=data?.[0];
+  document.getElementById('item-cntr').value=row?.cntr_no||'';
+  if(!row)return;
+  // Tự điền Khách hàng (FWD) theo factory, khớp qua tên/alias — vẫn đổi tay được nếu sai
+  if(row.factory){
+    const matched=custAliasMap[row.factory.toUpperCase().trim()];
+    if(matched)document.getElementById('item-cust').value=matched;
+  }
+  // Tự điền Tháng/Năm theo Start Time Out — vẫn đổi tay được nếu sai
+  if(row.start_time_out){
+    const d=new Date(row.start_time_out);
+    if(!isNaN(d)){
+      document.getElementById('item-month').value=String(d.getMonth()+1);
+      document.getElementById('item-year').value=d.getFullYear();
+    }
+  }
+}
+
+function filterServiceOptions(){
+  const q=(document.getElementById('item-service-search').value||'').trim().toLowerCase();
+  const list=document.getElementById('item-service-list');
+  const matches=catalogAll.filter(s=>s.active&&(!q||s.name.toLowerCase().includes(q)));
+  let html=matches.map(s=>
+    `<div style="padding:8px 12px;cursor:pointer;font-size:13px" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='#fff'" onmousedown="selectServiceOption('${s.id}')">${s.name}</div>`
+  ).join('');
+  if(!q||'phí khác'.includes(q)||'khác'.includes(q)){
+    html+=`<div style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--txt3);border-top:1px solid #f1f5f9" onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='#fff'" onmousedown="selectServiceOption('OTHER')">🔧 Phí khác (nhập tay)</div>`;
+  }
+  list.innerHTML=html||'<div style="padding:8px 12px;color:var(--txt3);font-size:13px">Không tìm thấy dịch vụ nào</div>';
+  list.style.display='block';
+}
+function hideServiceDropdown(){
+  document.getElementById('item-service-list').style.display='none';
+}
+function selectServiceOption(id){
+  const sel=document.getElementById('item-service');
+  sel.value=id;
+  const opt=[...sel.options].find(o=>o.value===id);
+  document.getElementById('item-service-search').value=opt?opt.textContent:'';
+  hideServiceDropdown();
+  onServiceChange();
+}
+
+async function resyncContLinks(){
+  if(!confirm('Quét toàn bộ phát sinh đang thiếu Số Cont, tra lại theo Booking và cập nhật Cont + Khách hàng + Tháng/Năm nếu tìm thấy?'))return;
+  if(!Object.keys(custAliasMap).length)await loadCustAliasMap();
+  const{data:items,error:e1}=await SB.from('debit_surcharge_items').select('id,booking_no').or('cntr_no.is.null,cntr_no.eq.');
+  if(e1){notif('Lỗi: '+e1.message,'n-err');return;}
+  if(!items?.length){notif('Không có phát sinh nào thiếu Cont');return;}
+  let updated=0,checked=0;
+  for(const it of items){
+    if(!it.booking_no)continue;
+    checked++;
+    const{data}=await SB.from('debit_raw_data').select('cntr_no,factory,start_time_out').eq('po',it.booking_no).limit(1);
+    const row=data?.[0];
+    if(!row?.cntr_no)continue;
+    const payload={cntr_no:row.cntr_no};
+    if(row.factory){
+      const matched=custAliasMap[row.factory.toUpperCase().trim()];
+      if(matched)payload.customer_name=matched;
+    }
+    if(row.start_time_out){
+      const d=new Date(row.start_time_out);
+      if(!isNaN(d)){payload.period_month=d.getMonth()+1;payload.period_year=d.getFullYear();}
+    }
+    const{error:e2}=await SB.from('debit_surcharge_items').update(payload).eq('id',it.id);
+    if(!e2)updated++;
+  }
+  notif(`✅ Đã quét ${checked} phát sinh, cập nhật được ${updated} dòng (Cont + Khách hàng + Tháng/Năm)`);
+  loadSurItems();
 }
 
 function onServiceChange(){
@@ -1157,6 +1241,10 @@ function openItemModal(s=null){
   document.getElementById('item-booking').value=s?.booking_no||'';
   document.getElementById('item-cntr').value=s?.cntr_no||'';
   document.getElementById('item-service').value=s?.catalog_id||'';
+  {
+    const selOpt=document.getElementById('item-service').selectedOptions[0];
+    document.getElementById('item-service-search').value=(s?.catalog_id&&selOpt)?selOpt.textContent:'';
+  }
   document.getElementById('item-other-name').value=s?.service_name||'';
   document.getElementById('item-qty').value=s?.quantity||1;
   document.getElementById('item-unit').value=s?.unit||'';
