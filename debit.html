@@ -558,11 +558,12 @@ function handleCbmFile(inp){
     const ci=(...ns)=>h.findIndex(c=>ns.some(n=>c===n||c.includes(n)));
     const iF=ci('Factory'),iC=ci('Cargo In Detail ID','Cargo'),iCN=ci('Cntr No','CNTR'),
           iPo=ci('PO'),iCbmN=ci('CBM Net','CBMNet'),iNum=ci('Num'),iNumOut=ci('Num Out'),
-          iSI=ci('Start Time In'),iSO=ci('Start Time Out');
+          iSI=ci('Start Time In'),iSO=ci('Start Time Out'),iCustName=ci('Customer Name','CustomerName');
 
     // Parse tất cả dòng raw
     const rawRows=rows.slice(1).filter(r=>r[iF]||r[iCN]).map(r=>({
       factory:String(r[iF]||'').trim(),
+      customer_name:String(r[iCustName]||'').trim(),
       cargo_id:String(r[iC]||'').trim(),
       cntr_no:String(r[iCN]||'').trim(),
       po:String(r[iPo]||'').trim(),
