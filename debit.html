@@ -988,7 +988,7 @@ async function loadCatalog(){
   const svc=document.getElementById('item-service');
   if(svc){
     svc.innerHTML='<option value="">— Chọn dịch vụ —</option>'+
-      (data||[]).filter(s=>s.active).map(s=>`<option value="${s.id}" data-unit="${s.unit}" data-sell="${s.price_sell}" data-cost="${s.price_cost}">${s.name}</option>`).join('')+
+      (data||[]).filter(s=>s.active).map(s=>`<option value="${s.id}" data-unit="${s.unit}" data-sell="${s.price_sell}" data-cost="${s.price_cost}" data-vendor="${s.vendor||''}">${s.name}</option>`).join('')+
       '<option value="OTHER">🔧 Phí khác (nhập tay)</option>';
   }
 }
@@ -1120,10 +1120,10 @@ function exportSurItems(){
   if(!surItemsData.length)return;
   const m=document.getElementById('si-month').value,y=document.getElementById('si-year').value;
   const wb=XLSX.utils.book_new();
-  const rows=[['Khách hàng','Booking','Cont','Dịch vụ','SL','ĐVT','Giá thu','Thành tiền','Ghi chú','Trạng thái']];
-  surItemsData.forEach(s=>rows.push([s.customer_name,s.booking_no,s.cntr_no,s.service_name,s.quantity,s.unit,s.price_sell,Math.round((s.price_sell||0)*(s.quantity||1)),s.note,s.status]));
+  const rows=[['Khách hàng','Booking','Cont','Dịch vụ','Vendor','SL','ĐVT','Giá thu','Giá vendor','Thành tiền','Ghi chú','Trạng thái']];
+  surItemsData.forEach(s=>rows.push([s.customer_name,s.booking_no,s.cntr_no,s.service_name,s.vendor_name,s.quantity,s.unit,s.price_sell,Math.round((s.price_cost||0)*(s.quantity||1)),Math.round((s.price_sell||0)*(s.quantity||1)),s.note,s.status]));
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=Array(10).fill({wch:18});
+  ws['!cols']=Array(12).fill({wch:18});
   XLSX.utils.book_append_sheet(wb,ws,'Phu phi');
   XLSX.writeFile(wb,`PhuPhi_T${m}${y}.xlsx`);
 }
@@ -1185,13 +1185,14 @@ function selectServiceOption(id){
 }
 
 async function resyncContLinks(){
-  if(!confirm('Quét toàn bộ phát sinh đang thiếu Số Cont, tra lại theo Booking và cập nhật Cont + Khách hàng + Tháng/Năm nếu tìm thấy?'))return;
+  if(!confirm('Quét toàn bộ phát sinh: (1) thiếu Số Cont → tra lại Cont+Khách hàng+Tháng/Năm theo Booking; (2) thiếu Vendor → lấy lại từ danh mục dịch vụ. Tiếp tục?'))return;
   if(!Object.keys(custAliasMap).length)await loadCustAliasMap();
+
+  // Phần 1: đồng bộ Cont + Khách hàng + Tháng/Năm cho các dòng thiếu Cont
   const{data:items,error:e1}=await SB.from('debit_surcharge_items').select('id,booking_no').or('cntr_no.is.null,cntr_no.eq.');
   if(e1){notif('Lỗi: '+e1.message,'n-err');return;}
-  if(!items?.length){notif('Không có phát sinh nào thiếu Cont');return;}
   let updated=0,checked=0;
-  for(const it of items){
+  for(const it of (items||[])){
     if(!it.booking_no)continue;
     checked++;
     const{data}=await SB.from('debit_raw_data').select('cntr_no,factory,start_time_out').eq('po',it.booking_no).limit(1);
@@ -1209,7 +1210,23 @@ async function resyncContLinks(){
     const{error:e2}=await SB.from('debit_surcharge_items').update(payload).eq('id',it.id);
     if(!e2)updated++;
   }
-  notif(`✅ Đã quét ${checked} phát sinh, cập nhật được ${updated} dòng (Cont + Khách hàng + Tháng/Năm)`);
+
+  // Phần 2: vá Vendor còn thiếu cho các dòng đã chọn dịch vụ từ danh mục (catalog_id có sẵn)
+  // — dữ liệu cũ trước bản sửa lỗi này chưa từng lưu vendor, giờ lấy lại đúng theo danh mục.
+  const{data:catalog}=await SB.from('debit_surcharge_catalog').select('id,vendor');
+  const vendorByCatalog={};(catalog||[]).forEach(c=>{vendorByCatalog[c.id]=c.vendor||'';});
+  const{data:missingVendor}=await SB.from('debit_surcharge_items').select('id,catalog_id')
+    .not('catalog_id','is',null).or('vendor_name.is.null,vendor_name.eq.');
+  let vendorFixed=0;
+  for(const it of (missingVendor||[])){
+    const v=vendorByCatalog[it.catalog_id];
+    if(v){
+      const{error:e3}=await SB.from('debit_surcharge_items').update({vendor_name:v}).eq('id',it.id);
+      if(!e3)vendorFixed++;
+    }
+  }
+
+  notif(`✅ Cont: quét ${checked}, cập nhật ${updated} dòng. Vendor: vá thêm ${vendorFixed} dòng.`);
   loadSurItems();
 }
 
@@ -1276,6 +1293,7 @@ async function saveItem(){
     unit:document.getElementById('item-unit').value,
     price_sell:+document.getElementById('item-sell').value||0,
     price_cost:+document.getElementById('item-cost').value||0,
+    vendor_name:isOther?'':(opt?.dataset.vendor||''),
     note:document.getElementById('item-note').value,
     created_by:'admin'};
   const id=document.getElementById('item-id').value;
