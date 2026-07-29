@@ -422,12 +422,32 @@ tr:hover td{background:#fafafa}
     </div>
   </div>
   <div class="g2" style="margin-bottom:12px">
-    <div><label class="flbl">Số Booking (PO)</label>
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <label class="flbl">Số Booking (PO)</label>
+        <a href="javascript:void(0)" onclick="toggleBulkMode()" style="font-size:12px;color:var(--blue)" id="bulk-toggle-link">📋 Nhập nhiều booking cùng lúc</a>
+      </div>
       <input class="finp" id="item-booking" placeholder="Nhập số booking..." oninput="lookupCntr(this.value)">
     </div>
-    <div><label class="flbl">Số Cont</label>
+    <div id="item-cntr-wrap"><label class="flbl">Số Cont</label>
       <input class="finp" id="item-cntr" placeholder="Tự điền từ booking, hoặc gõ tay nếu là phí theo cont (Đóng giá, Chăng lưới...)">
     </div>
+  </div>
+  <div id="bulk-booking-wrap" style="display:none;margin-bottom:12px">
+    <label class="flbl">Danh sách Booking &amp; Số lượng — bôi đen cột trong Excel, dán thẳng vào từng ô (Ctrl+V)</label>
+    <div class="g2">
+      <div>
+        <div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Cột Booking (mỗi dòng 1 booking)</div>
+        <textarea class="finp" id="item-bulk-bookings" rows="8" style="font-family:monospace;font-size:12px"
+          placeholder="HPH/HKG/3987612&#10;HPH/ZLO/3999957&#10;HPHTOR768166V"></textarea>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--txt3);margin-bottom:4px">Cột Số lượng (để trống dòng nào = mặc định 1)</div>
+        <textarea class="finp" id="item-bulk-qtys" rows="8" style="font-family:monospace;font-size:12px"
+          placeholder="2&#10;&#10;6"></textarea>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--txt3);margin-top:4px">2 ô khớp theo đúng thứ tự dòng. Cont, Tháng/Năm tự tra riêng cho từng booking. Khách hàng/Dịch vụ/Giá bên trên dùng chung cho toàn bộ danh sách.</div>
   </div>
   <div class="g2" style="margin-bottom:12px">
     <div style="position:relative">
@@ -443,7 +463,7 @@ tr:hover td{background:#fafafa}
     <div id="item-other-wrap" style="display:none"><label class="flbl">Tên phí khác</label><input class="finp" id="item-other-name" placeholder="Diễn giải..."></div>
   </div>
   <div class="g3" style="margin-bottom:12px">
-    <div><label class="flbl">Số lượng</label><input class="finp" type="number" id="item-qty" value="1" oninput="calcItemTotal()"></div>
+    <div id="item-qty-wrap"><label class="flbl">Số lượng</label><input class="finp" type="number" id="item-qty" value="1" oninput="calcItemTotal()"></div>
     <div><label class="flbl">Đơn vị</label><input class="finp" id="item-unit" readonly style="background:#f1f5f9"></div>
     <div><label class="flbl">Giá thu khách</label><input class="finp" type="number" id="item-sell" oninput="calcItemTotal()"></div>
   </div>
@@ -458,7 +478,7 @@ tr:hover td{background:#fafafa}
   <div style="margin-bottom:24px"><label class="flbl">Ghi chú</label><input class="finp" id="item-note" placeholder="Ghi chú thêm..."></div>
   <div style="display:flex;justify-content:flex-end;gap:8px">
     <button class="btn btn-o" onclick="closeModal('item-modal')">Hủy</button>
-    <button class="btn btn-p" onclick="saveItem()">💾 Lưu</button>
+    <button class="btn btn-p" onclick="saveItemDispatch()">💾 Lưu</button>
   </div>
 </div>
 </div>
@@ -1251,6 +1271,15 @@ function calcItemTotal(){
 function openItemModal(s=null){
   document.getElementById('item-modal-ttl').textContent=s?'✏️ Sửa phụ phí':'➕ Thêm phụ phí phát sinh';
   document.getElementById('item-id').value=s?.id||'';
+  // Reset về chế độ nhập từng dòng mỗi lần mở modal; chế độ nhập nhiều chỉ áp dụng khi Thêm mới
+  bulkMode=false;
+  document.getElementById('bulk-booking-wrap').style.display='none';
+  document.getElementById('item-booking').style.display='';
+  document.getElementById('item-cntr-wrap').style.display='';
+  document.getElementById('item-qty-wrap').style.display='';
+  document.getElementById('item-bulk-bookings').value='';
+  document.getElementById('item-bulk-qtys').value='';
+  document.getElementById('bulk-toggle-link').style.display=s?'none':'';
   document.getElementById('item-cust').value=s?.customer_name||'';
   // Sync tháng từ filter
   document.getElementById('item-month').value=s?.period_month||document.getElementById('si-month').value;
@@ -1273,6 +1302,77 @@ function openItemModal(s=null){
   openModal('item-modal');
 }
 function editItem(s){openItemModal(s);}
+
+let bulkMode=false;
+function toggleBulkMode(){
+  bulkMode=!bulkMode;
+  document.getElementById('bulk-booking-wrap').style.display=bulkMode?'block':'none';
+  document.getElementById('item-booking').style.display=bulkMode?'none':'';
+  document.getElementById('item-cntr-wrap').style.display=bulkMode?'none':'';
+  document.getElementById('item-qty-wrap').style.display=bulkMode?'none':'';
+  document.getElementById('bulk-toggle-link').textContent=bulkMode?'↩ Quay lại nhập từng dòng':'📋 Nhập nhiều booking cùng lúc';
+}
+
+function saveItemDispatch(){
+  if(bulkMode)saveBulkItems();
+  else saveItem();
+}
+
+async function saveBulkItems(){
+  const custName=document.getElementById('item-cust').value;
+  const svcSel=document.getElementById('item-service');
+  const isOther=svcSel.value==='OTHER'||!svcSel.value;
+  if(!custName){notif('Chọn khách hàng','n-err');return;}
+  const opt=svcSel.options[svcSel.selectedIndex];
+  const rawBookings=(document.getElementById('item-bulk-bookings').value||'').split('\n').map(l=>l.trim());
+  const rawQtys=(document.getElementById('item-bulk-qtys').value||'').split('\n').map(l=>l.trim());
+  const lines=[];
+  for(let i=0;i<rawBookings.length;i++){
+    if(!rawBookings[i])continue;
+    lines.push({booking:rawBookings[i], qty:rawQtys[i]?(+rawQtys[i]||1):1});
+  }
+  if(!lines.length){notif('Chưa nhập danh sách booking','n-err');return;}
+
+  const baseUnit=document.getElementById('item-unit').value;
+  const baseSell=+document.getElementById('item-sell').value||0;
+  const baseCost=+document.getElementById('item-cost').value||0;
+  const baseServiceName=isOther?document.getElementById('item-other-name').value:(opt?.text||'');
+  const catalogId=isOther?null:svcSel.value||null;
+  const vendorName=isOther?'':(opt?.dataset.vendor||'');
+  const defMonth=+document.getElementById('item-month').value;
+  const defYear=+document.getElementById('item-year').value;
+  const note=document.getElementById('item-note').value;
+
+  let ok=0,fail=0;
+  const payloads=[];
+  for(const {booking,qty} of lines){
+    let cntr='',month=defMonth,year=defYear;
+    const{data}=await SB.from('debit_raw_data').select('cntr_no,start_time_out').eq('po',booking).limit(1);
+    const row=data?.[0];
+    if(row?.cntr_no)cntr=row.cntr_no;
+    if(row?.start_time_out){
+      const d=new Date(row.start_time_out);
+      if(!isNaN(d)){month=d.getMonth()+1;year=d.getFullYear();}
+    }
+    payloads.push({
+      customer_name:custName, period_month:month, period_year:year,
+      booking_no:booking, cntr_no:cntr,
+      catalog_id:catalogId, service_name:baseServiceName,
+      quantity:qty, unit:baseUnit, price_sell:baseSell, price_cost:baseCost,
+      vendor_name:vendorName, note, created_by:'admin'
+    });
+  }
+  if(!payloads.length){notif('Không có dòng nào hợp lệ','n-err');return;}
+  const{error}=await SB.from('debit_surcharge_items').insert(payloads);
+  if(error){notif('Lỗi: '+error.message,'n-err');return;}
+  ok=payloads.length;
+  notif(`✅ Đã thêm ${ok} phát sinh`+(fail?`, bỏ qua ${fail} dòng lỗi`:''));
+  closeModal('item-modal');
+  document.getElementById('si-month').value=defMonth;
+  document.getElementById('si-year').value=defYear;
+  document.getElementById('si-cust').value=custName;
+  loadSurItems();
+}
 
 async function saveItem(){
   const custName=document.getElementById('item-cust').value;
