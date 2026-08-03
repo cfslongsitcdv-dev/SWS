@@ -675,8 +675,14 @@ function handleTruckingFile(inp){
     const h=rows[hi].map(v=>String(v).trim());
     const ci=n=>h.findIndex(c=>c===n);
     const iS=ci('SHIPPER'),iBk=ci('BOOKING NO.'),iCN=ci('CNTR'),iT=ci('TYPE'),
-          iL=ci('LINE'),iEP=ci('EMPTY PICKUP'),iP=ci('P.O.L');
-    truckRows=rows.slice(hi+1).filter(r=>r[iCN]&&String(r[iCN]).trim()).map(r=>({
+          iL=ci('LINE'),iEP=ci('EMPTY PICKUP'),iP=ci('P.O.L'),iClp=ci('CLP');
+    const allRows=rows.slice(hi+1).filter(r=>r[iCN]&&String(r[iCN]).trim());
+    // Chỉ lấy cont đã đóng xong, kẹp chì (CLP = F hoặc NF); bỏ qua X/CF/OK/trống (chưa đóng)
+    const clpFiltered=iClp>=0
+      ? allRows.filter(r=>['F','NF'].includes(String(r[iClp]||'').trim().toUpperCase()))
+      : allRows;
+    const skipped=allRows.length-clpFiltered.length;
+    truckRows=clpFiltered.map(r=>({
       shipper:String(r[iS]||'').trim(),
       booking_no:String(r[iBk]||'').trim(),
       cntr_no:String(r[iCN]||'').trim(),
@@ -688,7 +694,7 @@ function handleTruckingFile(inp){
     }));
     document.getElementById('tr-label').textContent=file.name;
     const info=document.getElementById('tr-info');info.style.display='block';
-    info.textContent=`✅ Đọc được ${truckRows.length} cont`;
+    info.textContent=`✅ Đọc được ${truckRows.length} cont (CLP=F/NF)`+(skipped?`, bỏ qua ${skipped} cont chưa đóng (X/CF/OK/trống)`:'');
   };
   reader.readAsArrayBuffer(file);
 }
