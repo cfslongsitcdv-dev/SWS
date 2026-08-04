@@ -1423,21 +1423,40 @@ async function confirmItem(id){
 
 // CALCULATE
 let calcData=[];
+
+// Supabase mặc định chỉ trả tối đa 1000 dòng/lần, KHÔNG báo lỗi khi bị cắt bớt.
+// Hàm này gọi lặp lại (phân trang) tới khi lấy đủ TOÀN BỘ dữ liệu khớp điều kiện.
+async function fetchAllRows(queryFactory){
+  const PAGE=1000;
+  let all=[],from=0;
+  while(true){
+    const{data,error}=await queryFactory().range(from,from+PAGE-1);
+    if(error){console.error('fetchAllRows lỗi:',error);break;}
+    if(!data||!data.length)break;
+    all=all.concat(data);
+    if(data.length<PAGE)break;
+    from+=PAGE;
+  }
+  return all;
+}
+
 async function runCalculate(){
   const m=+document.getElementById('calc-month').value,y=+document.getElementById('calc-year').value;
   const custFilter=document.getElementById('calc-cust').value;
   const dateFrom=`${y}-${String(m).padStart(2,'0')}-01`;
   const dateTo=`${y}-${String(m+1).padStart(2,'0')}-01`;
-  let q=SB.from('debit_raw_data').select('*').gte('start_time_out',dateFrom).lt('start_time_out',dateTo);
-  if(custFilter)q=q.eq('factory',custFilter);
-  const{data:raw}=await q;
+  const raw=await fetchAllRows(()=>{
+    let q=SB.from('debit_raw_data').select('*').gte('start_time_out',dateFrom).lt('start_time_out',dateTo);
+    if(custFilter)q=q.eq('factory',custFilter);
+    return q;
+  });
   if(!raw?.length){notif('Không có dữ liệu tháng '+m+'/'+y,'n-err');return;}
-  const{data:trucks}=await SB.from('debit_trucking_data').select('*');
+  const trucks=await fetchAllRows(()=>SB.from('debit_trucking_data').select('*'));
   const truckMap={};(trucks||[]).forEach(t=>{truckMap[t.cntr_no]={type:t.trucking_type,contType:t.cont_type,line:t.line,pickup:t.empty_pickup,pol:t.pol};});
   const{data:custs}=await SB.from('debit_customers').select('*');
   const{data:loloFees}=await SB.from('debit_lolo_fees').select('*');
   const{data:loloDisc}=await SB.from('debit_lolo_discounts').select('*');
-  const{data:surItems}=await SB.from('debit_surcharge_items').select('*').eq('period_month',m).eq('period_year',y).eq('status','confirmed');
+  const surItems=await fetchAllRows(()=>SB.from('debit_surcharge_items').select('*').eq('period_month',m).eq('period_year',y).eq('status','confirmed'));
   // Kiểm tra có cont gối từ tháng trước
   const{data:prevResults}=await SB.from('debit_results').select('*').eq('period_month',m===1?12:m-1).eq('period_year',m===1?y-1:y).eq('status','goi');
 
