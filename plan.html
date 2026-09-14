@@ -261,6 +261,16 @@ function safeDate(v){
 function toDateInput(iso){ return iso ? iso.slice(0,10) : ''; }
 function fmtDateVN(iso){ if(!iso) return '—'; const d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
 
+// Cntr có thể chưa biết (nhiều cont cùng 1 booking, chưa điền số) — Supabase yêu cầu
+// Booking+Cntr là duy nhất, nên khi để trống, tự gán 1 mã tạm KHÔNG BAO GIỜ trùng
+// (không hiển thị ra ngoài — xem displayCntr()).
+function genTbdCntr(){
+  return 'TBD-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,7);
+}
+function displayCntr(v){
+  return (v && v.startsWith('TBD-')) ? '' : (v||'');
+}
+
 // ── Trạng thái (khớp đúng công thức Excel gốc, dựa trên CLP + CD + Cntr) ──
 function computeStatus(clp, cd, cntr){
   clp = (clp||'').trim().toUpperCase();
@@ -358,7 +368,7 @@ async function loadAll(){
 }
 
 function renderStats(){
-  const withCntr = allRows.filter(r=>r.cntr_no);
+  const withCntr = allRows.filter(r=>displayCntr(r.cntr_no));
   const uniqBookings = new Set(allRows.filter(r=>r.booking_no).map(r=>r.booking_no));
   let done=0, loaded=0, loading=0, waiting=0;
   const todayStr = new Date().toISOString().slice(0,10);
@@ -419,7 +429,7 @@ function renderTable(){
       <td>${r.etd?fmtDateVN(r.etd):'—'}</td>
       <td>${r.cutoff_time||''} ${r.cutoff_date?fmtDateVN(r.cutoff_date):''}</td>
       <td><b>${r.booking_no||'—'}</b></td>
-      <td>${r.cntr_no||'—'}</td>
+      <td>${displayCntr(r.cntr_no)||'—'}</td>
       <td>${r.seal||'—'}</td>
       <td>${r.cont_type||'—'}</td>
       <td>${r.empty_pickup||'—'}</td>
@@ -455,7 +465,7 @@ function openRowModal(r){
   document.getElementById('f-cutoff-time').value = r?.cutoff_time || '';
   document.getElementById('f-cutoff-date').value = toDateInput(r?.cutoff_date);
   document.getElementById('f-booking').value = r?.booking_no || '';
-  document.getElementById('f-cntr').value = r?.cntr_no || '';
+  document.getElementById('f-cntr').value = displayCntr(r?.cntr_no);
   document.getElementById('f-seal').value = r?.seal || '';
   document.getElementById('f-seal-cus').value = r?.seal_cus || '';
   document.getElementById('f-type').value = r?.cont_type || '';
@@ -483,7 +493,7 @@ async function saveRow(){
     cutoff_time: document.getElementById('f-cutoff-time').value.trim(),
     cutoff_date: document.getElementById('f-cutoff-date').value || null,
     booking_no: document.getElementById('f-booking').value.trim(),
-    cntr_no: document.getElementById('f-cntr').value.trim(),
+    cntr_no: document.getElementById('f-cntr').value.trim() || genTbdCntr(),
     seal: document.getElementById('f-seal').value.trim(),
     seal_cus: document.getElementById('f-seal-cus').value.trim(),
     cont_type: document.getElementById('f-type').value.trim(),
@@ -555,13 +565,33 @@ function handleImport(inp){
         m_month: String(r[20]||'').trim(),
       })).filter(r => r.booking_no || r.cntr_no);
 
+      // Cntr có thể chưa biết (nhiều cont cùng 1 booking, chưa điền số) — gán mã tạm
+      // riêng biệt cho từng dòng trống Cntr, để KHÔNG bị coi là trùng nhau (Booking+Cntr
+      // rỗng giống hệt nhau sẽ vi phạm ràng buộc duy nhất nếu không xử lý bước này).
+      payload.forEach(r => { if(!r.cntr_no) r.cntr_no = genTbdCntr(); });
+
+      // Loại trùng khóa THẬT (Booking No. + Cntr cùng có giá trị thật, trùng nhau) trong
+      // chính lô đang import — Postgres không cho ON CONFLICT xử lý 2 lần cùng 1 khóa
+      // trong 1 lệnh upsert. Dòng nào trùng khóa, giữ dòng xuất hiện sau cùng trong file.
+      const dedupMap = new Map();
+      let dupCount = 0;
+      for(const r of payload){
+        const key = r.booking_no + '||' + r.cntr_no;
+        if(dedupMap.has(key)) dupCount++;
+        dedupMap.set(key, r);
+      }
+      const dedupedPayload = Array.from(dedupMap.values());
+      if(dupCount){
+        document.getElementById('import-progress').textContent = `Đọc được ${payload.length} dòng, phát hiện ${dupCount} dòng trùng khóa Booking+Cntr → giữ lại ${dedupedPayload.length} dòng. Đang tải lên...`;
+      }
+
       let done = 0;
-      for(let i=0; i<payload.length; i+=500){
-        const chunk = payload.slice(i, i+500);
+      for(let i=0; i<dedupedPayload.length; i+=500){
+        const chunk = dedupedPayload.slice(i, i+500);
         const {error} = await SB.from('plan_bookings').upsert(chunk, {onConflict:'booking_no,cntr_no', ignoreDuplicates:false});
         if(error){ notif('Lỗi upload: '+error.message, 'err'); document.getElementById('import-progress').textContent = 'Lỗi: '+error.message; return; }
         done += chunk.length;
-        document.getElementById('import-progress').textContent = `Đã tải lên ${done}/${payload.length} dòng...`;
+        document.getElementById('import-progress').textContent = `Đã tải lên ${done}/${dedupedPayload.length} dòng...`;
       }
       document.getElementById('import-progress').textContent = `✅ Hoàn tất — đã import ${done} dòng.`;
       notif(`✅ Import xong ${done} dòng`);
@@ -584,7 +614,7 @@ function exportExcel(){
   allRows.forEach(r=>{
     const status = computeStatus(r.clp, r.cd, r.cntr_no);
     const urgency = computeMucDo(r.cutoff_date, r.cutoff_time, status, now);
-    rows.push([r.shipper,r.line,r.etd,r.cutoff_time,r.cutoff_date,r.booking_no,r.cntr_no,r.seal,r.seal_cus,r.cont_type,
+    rows.push([r.shipper,r.line,r.etd,r.cutoff_time,r.cutoff_date,r.booking_no,displayCntr(r.cntr_no),r.seal,r.seal_cus,r.cont_type,
       r.empty_pickup,r.pol,r.vessel,r.clp,r.remark,r.cd,r.ts_port,r.pod,r.d_date,r.w_week,r.m_month,urgency,status]);
   });
   const wb = XLSX.utils.book_new();
