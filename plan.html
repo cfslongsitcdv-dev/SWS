@@ -497,9 +497,27 @@ function renderStats(){
 // 5.900+ dòng cùng lúc. Đây là kỹ thuật Google Sheets/các bảng lớn đều dùng —
 // cuộn tới đâu, JS tính lại "dòng nào đang trong khung nhìn" rồi mới vẽ đúng
 // đoạn đó, phần trên/dưới để trống bằng 2 spacer giữ đúng chiều cao cuộn.
-const ROW_H = 23; // phải khớp với chiều cao thật của 1 <tr> (xem CSS "tbody tr")
+let ROW_H = 23; // giá trị khởi tạo — sẽ tự ĐO LẠI chính xác từ trình duyệt sau khi vẽ lần đầu
+                 // (xem calibrateRowHeight) để tránh sai số cộng dồn qua hàng nghìn dòng
 const BUFFER = 15; // vẽ dư thêm mỗi phía để cuộn nhanh không bị giật/trắng
 let filteredRows = [];
+
+// Đo lại chiều cao THẬT của 1 dòng đã vẽ trên trình duyệt — nếu lệch so với ROW_H
+// giả định (dù chỉ vài phần trăm px), sửa lại và vẽ lại toàn bộ theo số đo đúng.
+// Sai số nhỏ này, nếu không sửa, cộng dồn qua ~6.000 dòng có thể lệch hàng nghìn px,
+// khiến virtual scroll tính sai vùng hiển thị đúng lúc cuộn gần cuối bảng.
+let calibrated = false;
+function calibrateRowHeight(){
+  const sample = document.querySelector('#tbody tr[data-id]');
+  if(!sample) return;
+  const real = sample.getBoundingClientRect().height;
+  if(real > 5 && Math.abs(real - ROW_H) > 0.3){
+    ROW_H = real;
+    lastStart = lastEnd = lastTotal = -1; // buộc vẽ lại với số đo mới
+    renderVisibleRows(true);
+  }
+  calibrated = true;
+}
 
 function renderTable(resetScroll = true){
   const q = (document.getElementById('search').value||'').trim().toLowerCase();
@@ -581,6 +599,8 @@ function renderVisibleRows(force){
     `<tr style="height:${topSpacerH}px"><td colspan="23" style="padding:0;border:none"></td></tr>` +
     visible +
     `<tr style="height:${bottomSpacerH}px"><td colspan="23" style="padding:0;border:none"></td></tr>`;
+
+  if(!calibrated) requestAnimationFrame(calibrateRowHeight);
 }
 
 // Cuộn: dùng requestAnimationFrame để không tính toán quá dày (mượt hơn)
