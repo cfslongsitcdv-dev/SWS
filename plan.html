@@ -48,7 +48,7 @@ body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14p
 .btn-sm{padding:5px 9px;font-size:12px}
 
 .tbl-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow-x:auto;overflow-y:auto;max-height:66vh}
-table{border-collapse:collapse;width:100%;font-size:10px;font-family:'Times New Roman',Times,serif;table-layout:fixed}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:10px;font-family:'Times New Roman',Times,serif;table-layout:fixed}
 th{padding:6px 5px;text-align:left;font-size:9.5px;font-weight:700;color:var(--txt3);background:#f8fafc;border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;position:sticky;top:0;z-index:2;overflow:hidden;text-overflow:ellipsis}
 td{padding:4px 5px;border-bottom:1px solid #f1f5f9;white-space:nowrap;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;height:23px;box-sizing:border-box}
 tbody tr{height:23px}
@@ -59,13 +59,14 @@ th{position:relative}
 .col-resizer{position:absolute;right:0;top:0;bottom:0;width:6px;cursor:col-resize;z-index:5;user-select:none}
 .col-resizer:hover,.col-resizer.active{background:var(--blue)}
 tr:hover td{background:#f8fafc}
-.row-done td{background:#f0fdf4}
-.row-loaded td{background:#eff6ff}
-.row-loading td{background:#fffbeb}
-.row-waiting td{background:#f5f3ff}
-.row-cancel td{background:#fef2f2}
-.row-picked td{background:#f0f9ff}
-.row-done:hover td,.row-loaded:hover td,.row-loading:hover td,.row-waiting:hover td,.row-cancel:hover td,.row-picked:hover td{filter:brightness(0.97)}
+.row-picked td{background:#f1f5f9}   /* xám nhạt — mới lấy vỏ, bắt đầu */
+.row-pending td{background:#fefce8}  /* vàng nhạt — chờ đóng hàng */
+.row-loading td{background:#fff7ed}  /* cam nhạt — đang đóng hàng */
+.row-waiting td{background:#faf5ff}  /* tím nhạt — chờ tác nghiệp, cần chú ý */
+.row-loaded td{background:#eff6ff}   /* xanh dương nhạt — đã đóng hàng, sẵn sàng */
+.row-done td{background:#f0fdf4}     /* xanh lá nhạt — hoàn thành */
+.row-cancel td{background:#fef2f2}   /* đỏ nhạt — đã hủy */
+.row-picked:hover td,.row-pending:hover td,.row-loading:hover td,.row-waiting:hover td,.row-loaded:hover td,.row-done:hover td,.row-cancel:hover td{filter:brightness(0.97)}
 .pager{background:var(--s1);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);padding:8px 14px;display:flex;align-items:center;font-size:12px;color:var(--txt2)}
 .ctx-item{padding:8px 12px;border-radius:6px;cursor:pointer;color:var(--txt)}
 .ctx-item:hover{background:var(--s3)}
@@ -75,10 +76,11 @@ tr:hover td{background:#f8fafc}
 .badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;display:inline-block}
 .b-done{background:#dcfce7;color:#15803d}
 .b-loaded{background:#dbeafe;color:#1d4ed8}
-.b-loading{background:#fef3c7;color:#b45309}
+.b-loading{background:#ffedd5;color:#c2410c}
 .b-waiting{background:#ede9fe;color:#6d28d9}
+.b-pending{background:#fef9c3;color:#a16207}
 .b-cancel{background:#fee2e2;color:#b91c1c}
-.b-picked{background:#e0f2fe;color:#0369a1}
+.b-picked{background:#f1f5f9;color:#475569}
 .b-empty{background:#f1f5f9;color:#94a3b8}
 .u-overdue{background:#fee2e2;color:#b91c1c}
 .u-urgent{background:#fed7aa;color:#c2410c}
@@ -130,13 +132,13 @@ tr:hover td{background:#f8fafc}
   <div class="today-bar" id="today-bar"></div>
 
   <div class="toolbar">
-    <input class="finp" id="search" placeholder="🔍 Tìm booking, cont, shipper, vessel..." oninput="curPage=0;renderTable()">
-    <select class="finp" id="f-status" onchange="curPage=0;renderTable()">
+    <input class="finp" id="search" placeholder="🔍 Tìm booking, cont, shipper, vessel..." oninput="renderTable()">
+    <select class="finp" id="f-status" onchange="renderTable()">
       <option value="">Tất cả trạng thái</option>
       <option>Hoàn thành</option><option>Đã đóng hàng</option><option>Đang đóng hàng</option>
       <option>Chờ tác nghiệp</option><option>Chờ đóng hàng</option><option>Đã lấy vỏ</option><option>Hủy</option>
     </select>
-    <select class="finp" id="f-urgency" onchange="curPage=0;renderTable()">
+    <select class="finp" id="f-urgency" onchange="renderTable()">
       <option value="">Tất cả mức độ</option>
       <option>Quá Hạn</option><option>Gấp</option><option>Khẩn Cấp</option><option>Cần Chú Ý</option><option>Bình Thường</option>
     </select>
@@ -349,16 +351,16 @@ function computeStatus(clp, cd, cntr){
   if(clp==='NF') return 'Chờ tác nghiệp';
   if(clp==='CF') return 'Đang đóng hàng';
   if(clp==='OK') return 'Chờ đóng hàng';
-  if(cntr) return 'Đã lấy vỏ';
+  if(displayCntr(cntr)) return 'Đã lấy vỏ'; // chỉ tính Cntr THẬT, không tính mã tạm TBD-
   return '';
 }
 function statusBadgeClass(s){
   return {'Hoàn thành':'b-done','Đã đóng hàng':'b-loaded','Đang đóng hàng':'b-loading',
-    'Chờ tác nghiệp':'b-waiting','Chờ đóng hàng':'b-waiting','Hủy':'b-cancel','Đã lấy vỏ':'b-picked'}[s] || 'b-empty';
+    'Chờ tác nghiệp':'b-waiting','Chờ đóng hàng':'b-pending','Hủy':'b-cancel','Đã lấy vỏ':'b-picked'}[s] || 'b-empty';
 }
 function rowTintClass(s){
-  return {'Hoàn thành':'done','Đã đóng hàng':'loaded','Đang đóng hàng':'loading',
-    'Chờ tác nghiệp':'waiting','Chờ đóng hàng':'waiting','Hủy':'cancel','Đã lấy vỏ':'picked'}[s] || 'none';
+  return {'Đã lấy vỏ':'picked','Chờ đóng hàng':'pending','Đang đóng hàng':'loading',
+    'Chờ tác nghiệp':'waiting','Đã đóng hàng':'loaded','Hoàn thành':'done','Hủy':'cancel'}[s] || 'none';
 }
 
 // ── Mức độ khẩn cấp (dịch nguyên công thức LET gốc — giờ làm việc CFS còn lại tới Cutoff) ──
@@ -434,12 +436,15 @@ function urgencyBadgeClass(u){
 
 // ── LOAD ──
 async function loadAll(){
+  const wrap = document.getElementById('tbl-wrap');
+  const keepScroll = wrap.scrollTop; // giữ nguyên vị trí đang xem, không nhảy về đầu
   allRows = await fetchAllRows(()=> SB.from('plan_bookings').select('*').order('sort_seq',{ascending:true, nullsFirst:false}));
   document.getElementById('last-update').textContent = 'Cập nhật: ' + new Date().toLocaleString('vi-VN');
-  curPage = 0;
   recomputeDerived();
   renderStats();
-  renderTable();
+  renderTable(false); // false = không reset cuộn về đầu
+  wrap.scrollTop = keepScroll;
+  renderVisibleRows(); // vẽ lại đúng đoạn đang xem theo vị trí cuộn vừa khôi phục
 }
 
 // Tính "Trạng thái" + "Mức độ" cho TỪNG dòng 1 lần duy nhất (không tính lại mỗi lần gõ
@@ -492,7 +497,7 @@ const ROW_H = 23; // phải khớp với chiều cao thật của 1 <tr> (xem CS
 const BUFFER = 15; // vẽ dư thêm mỗi phía để cuộn nhanh không bị giật/trắng
 let filteredRows = [];
 
-function renderTable(){
+function renderTable(resetScroll = true){
   const q = (document.getElementById('search').value||'').trim().toLowerCase();
   const fStatus = document.getElementById('f-status').value;
   const fUrgency = document.getElementById('f-urgency').value;
@@ -506,7 +511,7 @@ function renderTable(){
 
   filteredRows = rows;
   document.getElementById('pager-info').textContent = `${rows.length.toLocaleString()} dòng khớp bộ lọc`;
-  document.getElementById('tbl-wrap').scrollTop = 0;
+  if(resetScroll) document.getElementById('tbl-wrap').scrollTop = 0;
   renderVisibleRows();
 }
 
