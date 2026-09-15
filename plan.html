@@ -443,8 +443,12 @@ async function loadAll(){
   recomputeDerived();
   renderStats();
   renderTable(false); // false = không reset cuộn về đầu
-  wrap.scrollTop = keepScroll;
-  renderVisibleRows(); // vẽ lại đúng đoạn đang xem theo vị trí cuộn vừa khôi phục
+  // Đợi trình duyệt vẽ xong khung hiện tại rồi mới khôi phục scrollTop — tránh bị
+  // trình duyệt "kẹp" nhầm về giá trị nhỏ hơn khi nội dung/chiều cao chưa ổn định.
+  requestAnimationFrame(() => {
+    wrap.scrollTop = keepScroll;
+    renderVisibleRows(true);
+  });
 }
 
 // Tính "Trạng thái" + "Mức độ" cho TỪNG dòng 1 lần duy nhất (không tính lại mỗi lần gõ
@@ -512,7 +516,7 @@ function renderTable(resetScroll = true){
   filteredRows = rows;
   document.getElementById('pager-info').textContent = `${rows.length.toLocaleString()} dòng khớp bộ lọc`;
   if(resetScroll) document.getElementById('tbl-wrap').scrollTop = 0;
-  renderVisibleRows();
+  renderVisibleRows(true);
 }
 
 function rowHTML(r){
@@ -544,13 +548,15 @@ function rowHTML(r){
     </tr>`;
 }
 
-function renderVisibleRows(){
+let lastStart = -1, lastEnd = -1, lastTotal = -1;
+function renderVisibleRows(force){
   const tbody = document.getElementById('tbody');
   const wrap = document.getElementById('tbl-wrap');
   const total = filteredRows.length;
 
   if(!total){
     tbody.innerHTML = `<tr><td colspan="23"><div class="empty-state">Không có dòng nào khớp bộ lọc</div></td></tr>`;
+    lastStart = lastEnd = lastTotal = -1;
     return;
   }
 
@@ -560,6 +566,12 @@ function renderVisibleRows(){
   let end = Math.ceil((scrollTop + viewportH) / ROW_H) + BUFFER;
   start = Math.max(0, start);
   end = Math.min(total, end);
+
+  // Vùng đang hiện chưa đổi (vẫn đúng những dòng đã vẽ) -> KHÔNG vẽ lại.
+  // Đây là nguyên nhân chính gây giật/đứng: trước đây MỖI khung hình cuộn đều
+  // phá-dựng-lại toàn bộ tbody, kể cả khi chẳng có gì thay đổi để vẽ thêm.
+  if(!force && start === lastStart && end === lastEnd && total === lastTotal) return;
+  lastStart = start; lastEnd = end; lastTotal = total;
 
   const topSpacerH = start * ROW_H;
   const bottomSpacerH = (total - end) * ROW_H;
@@ -719,7 +731,7 @@ async function insertRowAtTop(){
 }
 
 // Tự tính lại "Mức độ" mỗi phút (vì phụ thuộc giờ hiện tại, không lưu cố định)
-setInterval(()=>{ recomputeDerived(); renderVisibleRows(); }, 60000);
+setInterval(()=>{ recomputeDerived(); renderVisibleRows(true); }, 60000);
 
 // ── MODAL THÊM/SỬA ──
 function openRowModal(r){
