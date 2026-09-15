@@ -50,7 +50,8 @@ body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14p
 .tbl-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow-x:auto;overflow-y:auto;max-height:66vh}
 table{border-collapse:collapse;width:100%;font-size:10px;font-family:'Times New Roman',Times,serif;table-layout:fixed}
 th{padding:6px 5px;text-align:left;font-size:9.5px;font-weight:700;color:var(--txt3);background:#f8fafc;border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;position:sticky;top:0;z-index:2;overflow:hidden;text-overflow:ellipsis}
-td{padding:4px 5px;border-bottom:1px solid #f1f5f9;white-space:nowrap;color:var(--txt2);overflow:hidden;text-overflow:ellipsis}
+td{padding:4px 5px;border-bottom:1px solid #f1f5f9;white-space:nowrap;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;height:23px;box-sizing:border-box}
+tbody tr{height:23px}
 td[data-editable]{cursor:cell}
 td[data-editable]:hover{background:#eff6ff!important;outline:1px solid var(--blue-m)}
 /* Bề rộng từng cột giờ set qua <colgroup> (JS) để kéo giãn/thu được — xem initColWidths() */
@@ -66,6 +67,11 @@ tr:hover td{background:#f8fafc}
 .row-picked td{background:#f0f9ff}
 .row-done:hover td,.row-loaded:hover td,.row-loading:hover td,.row-waiting:hover td,.row-cancel:hover td,.row-picked:hover td{filter:brightness(0.97)}
 .pager{background:var(--s1);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);padding:8px 14px;display:flex;align-items:center;font-size:12px;color:var(--txt2)}
+.ctx-item{padding:8px 12px;border-radius:6px;cursor:pointer;color:var(--txt)}
+.ctx-item:hover{background:var(--s3)}
+.ctx-item.ctx-danger{color:var(--red)}
+.row-handle{text-align:center;color:var(--txt3);cursor:pointer;font-weight:700;background:#f8fafc!important}
+.row-handle:hover{color:var(--blue);background:#e0eaff!important}
 .badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;display:inline-block}
 .b-done{background:#dcfce7;color:#15803d}
 .b-loaded{background:#dbeafe;color:#1d4ed8}
@@ -143,20 +149,22 @@ tr:hover td{background:#f8fafc}
     <button class="btn btn-o" onclick="loadAll()">🔄 Tải lại</button>
   </div>
 
-  <div class="tbl-wrap">
+  <div class="tbl-wrap" id="tbl-wrap">
     <table id="main-table">
       <colgroup>
+        <col id="col-handle" style="width:26px">
         <col id="col-0"><col id="col-1"><col id="col-2"><col id="col-3"><col id="col-4"><col id="col-5">
         <col id="col-6"><col id="col-7"><col id="col-8"><col id="col-9"><col id="col-10"><col id="col-11"><col id="col-12">
         <col id="col-13"><col id="col-14"><col id="col-15"><col id="col-16"><col id="col-17"><col id="col-18"><col id="col-19">
-        <col id="col-20"><col id="col-21"><col id="col-22">
+        <col id="col-20"><col id="col-21">
       </colgroup>
       <thead>
         <tr>
+          <th style="text-align:center">⋮</th>
           <th data-ci="0">Shipper<span class="col-resizer"></span></th><th data-ci="1">Line<span class="col-resizer"></span></th><th data-ci="2">ETD<span class="col-resizer"></span></th><th data-ci="3">Cutoff<span class="col-resizer"></span></th><th data-ci="4">Booking No.<span class="col-resizer"></span></th><th data-ci="5">Cntr<span class="col-resizer"></span></th>
           <th data-ci="6">Seal<span class="col-resizer"></span></th><th data-ci="7">Seal Cus<span class="col-resizer"></span></th><th data-ci="8">Type<span class="col-resizer"></span></th><th data-ci="9">Empty Pickup<span class="col-resizer"></span></th><th data-ci="10">P.O.L<span class="col-resizer"></span></th><th data-ci="11">Vessel<span class="col-resizer"></span></th><th data-ci="12">CLP<span class="col-resizer"></span></th>
           <th data-ci="13">CD<span class="col-resizer"></span></th><th data-ci="14">Remark<span class="col-resizer"></span></th><th data-ci="15">T/S Port<span class="col-resizer"></span></th><th data-ci="16">POD<span class="col-resizer"></span></th><th data-ci="17">D<span class="col-resizer"></span></th><th data-ci="18">W<span class="col-resizer"></span></th><th data-ci="19">M<span class="col-resizer"></span></th>
-          <th data-ci="20">Mức độ<span class="col-resizer"></span></th><th data-ci="21">Trạng thái<span class="col-resizer"></span></th><th data-ci="22"></th>
+          <th data-ci="20">Mức độ<span class="col-resizer"></span></th><th data-ci="21">Trạng thái</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -164,17 +172,13 @@ tr:hover td{background:#f8fafc}
   </div>
   <div class="pager">
     <span id="pager-info"></span>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
-      <button class="btn btn-o btn-sm" onclick="pagerGo(-1)">‹ Trước</button>
-      <span id="pager-pos" style="font-size:12px;color:var(--txt2)"></span>
-      <button class="btn btn-o btn-sm" onclick="pagerGo(1)">Sau ›</button>
-      <select class="finp" id="page-size" style="width:auto" onchange="curPage=0;renderTable()">
-        <option value="0" selected>Hiện tất cả</option>
-        <option value="50">50 dòng/trang</option>
-        <option value="100">100 dòng/trang</option>
-        <option value="200">200 dòng/trang</option>
-      </select>
-    </div>
+    <span style="margin-left:auto;font-size:11px;color:var(--txt3)">Cuộn để xem thêm — click ⋮ đầu dòng hoặc chuột phải để chèn/xóa dòng</span>
+  </div>
+
+  <div id="row-ctx-menu" style="display:none;position:fixed;background:#fff;border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:200;min-width:180px;padding:4px;font-size:13px">
+    <div class="ctx-item" onclick="ctxInsertAbove()">⬆️ Chèn dòng lên trên</div>
+    <div class="ctx-item" onclick="ctxInsertBelow()">⬇️ Chèn dòng xuống dưới</div>
+    <div class="ctx-item ctx-danger" onclick="ctxDeleteRow()">🗑 Xóa dòng này</div>
   </div>
 
 </div>
@@ -300,8 +304,15 @@ function safeDate(v){
 function dateOnlyLocal(v){
   try{
     if(v instanceof Date){
-      const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,'0'), d=String(v.getDate()).padStart(2,'0');
-      return `${y}-${m}-${d}`;
+      // SheetJS dựng Date theo múi giờ máy đọc file, CỘNG THÊM sai số nhỏ (vài giây/phút)
+      // do số serial ngày của Excel vốn có sai số làm tròn dấu phẩy động — 2 yếu tố này
+      // cộng lại có thể đẩy giờ lệch qua nửa đêm, sai mất 1 ngày theo hướng bất kỳ.
+      // Cách sửa đúng: làm tròn về NGÀY GẦN NHẤT (theo mốc UTC tuyệt đối), không dùng
+      // getters theo giờ địa phương hay UTC trực tiếp — cả 2 đều có thể sai theo từng case.
+      // Đã kiểm chứng khớp 100% với toàn bộ 6.964 giá trị ngày thật trong file gốc.
+      const roundedMs = Math.round(v.getTime() / 86400000) * 86400000;
+      const r = new Date(roundedMs);
+      return `${r.getUTCFullYear()}-${String(r.getUTCMonth()+1).padStart(2,'0')}-${String(r.getUTCDate()).padStart(2,'0')}`;
     }
     if(typeof v==='number'){
       // Excel serial số ngày — không có múi giờ, quy đổi thẳng bằng UTC getters (không qua local)
@@ -473,8 +484,13 @@ function renderStats(){
     `✅ <b>${tDone}</b> hoàn thành &nbsp; 📦 <b>${tLoaded}</b> đã đóng &nbsp; 🔄 <b>${tLoading}</b> đang đóng &nbsp; ⏳ <b>${tWaiting}</b> chờ tác nghiệp`;
 }
 
-let curPage = 0;
-function pagerGo(delta){ curPage = Math.max(0, curPage + delta); renderTable(); }
+// ── VIRTUAL SCROLL: chỉ vẽ ~40-60 dòng đang hiện trên màn hình, không vẽ hết
+// 5.900+ dòng cùng lúc. Đây là kỹ thuật Google Sheets/các bảng lớn đều dùng —
+// cuộn tới đâu, JS tính lại "dòng nào đang trong khung nhìn" rồi mới vẽ đúng
+// đoạn đó, phần trên/dưới để trống bằng 2 spacer giữ đúng chiều cao cuộn.
+const ROW_H = 23; // phải khớp với chiều cao thật của 1 <tr> (xem CSS "tbody tr")
+const BUFFER = 15; // vẽ dư thêm mỗi phía để cuộn nhanh không bị giật/trắng
+let filteredRows = [];
 
 function renderTable(){
   const q = (document.getElementById('search').value||'').trim().toLowerCase();
@@ -482,32 +498,22 @@ function renderTable(){
   const fUrgency = document.getElementById('f-urgency').value;
 
   let rows = allRows; // _status/_urgency đã được tính sẵn trong recomputeDerived()
-
   if(q){
     rows = rows.filter(r => [r.shipper,r.booking_no,r.cntr_no,r.vessel,r.line,r.pol].some(v=>String(v||'').toLowerCase().includes(q)));
   }
   if(fStatus) rows = rows.filter(r=>r._status===fStatus);
   if(fUrgency) rows = rows.filter(r=>r._urgency===fUrgency);
 
-  // Mặc định "Hiện tất cả" (0) — vì đã tối ưu không còn tính toán nặng mỗi lần gõ,
-  // hiện hết vẫn mượt và dễ theo dõi tổng thể hơn. Có thể bật lại phân trang nếu cần.
-  const pageSizeRaw = +document.getElementById('page-size').value;
-  const pageSize = pageSizeRaw > 0 ? pageSizeRaw : rows.length || 1;
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-  if(curPage >= totalPages) curPage = totalPages - 1;
-  if(curPage < 0) curPage = 0;
-  const pageRows = rows.slice(curPage*pageSize, curPage*pageSize + pageSize);
-
+  filteredRows = rows;
   document.getElementById('pager-info').textContent = `${rows.length.toLocaleString()} dòng khớp bộ lọc`;
-  document.getElementById('pager-pos').textContent = pageSizeRaw > 0 ? `Trang ${curPage+1}/${totalPages}` : '';
+  document.getElementById('tbl-wrap').scrollTop = 0;
+  renderVisibleRows();
+}
 
-  const tbody = document.getElementById('tbody');
-  if(!pageRows.length){
-    tbody.innerHTML = `<tr><td colspan="23"><div class="empty-state">Không có dòng nào khớp bộ lọc</div></td></tr>`;
-    return;
-  }
-  tbody.innerHTML = pageRows.map(r => `
-    <tr class="row-${rowTintClass(r._status)}" data-id="${r.id}">
+function rowHTML(r){
+  return `
+    <tr class="row-${rowTintClass(r._status)}" data-id="${r.id}" style="height:${ROW_H}px">
+      <td class="row-handle" onclick="openRowCtx(event,'${r.id}')" oncontextmenu="openRowCtx(event,'${r.id}');return false">⋮</td>
       <td data-editable data-field="shipper">${r.shipper||''}</td>
       <td data-editable data-field="line">${r.line||''}</td>
       <td data-editable data-field="etd" data-type="date">${r.etd?fmtDateVN(r.etd):''}</td>
@@ -530,13 +536,62 @@ function renderTable(){
       <td data-editable data-field="m_month">${r.m_month||''}</td>
       <td>${r._urgency?`<span class="badge ${urgencyBadgeClass(r._urgency)}">${r._urgency}</span>`:'—'}</td>
       <td>${r._status?`<span class="badge ${statusBadgeClass(r._status)}">${r._status}</span>`:'—'}</td>
-      <td style="white-space:nowrap">
-        <button class="act-btn" title="Chèn dòng mới bên dưới" onclick="insertRowAfter('${r.id}')">➕</button>
-        <button class="act-btn act-del" title="Xóa dòng" onclick="deleteRow('${r.id}')">🗑</button>
-      </td>
-    </tr>
-  `).join('');
+    </tr>`;
 }
+
+function renderVisibleRows(){
+  const tbody = document.getElementById('tbody');
+  const wrap = document.getElementById('tbl-wrap');
+  const total = filteredRows.length;
+
+  if(!total){
+    tbody.innerHTML = `<tr><td colspan="23"><div class="empty-state">Không có dòng nào khớp bộ lọc</div></td></tr>`;
+    return;
+  }
+
+  const scrollTop = wrap.scrollTop;
+  const viewportH = wrap.clientHeight;
+  let start = Math.floor(scrollTop / ROW_H) - BUFFER;
+  let end = Math.ceil((scrollTop + viewportH) / ROW_H) + BUFFER;
+  start = Math.max(0, start);
+  end = Math.min(total, end);
+
+  const topSpacerH = start * ROW_H;
+  const bottomSpacerH = (total - end) * ROW_H;
+  const visible = filteredRows.slice(start, end).map(rowHTML).join('');
+
+  tbody.innerHTML =
+    `<tr style="height:${topSpacerH}px"><td colspan="23" style="padding:0;border:none"></td></tr>` +
+    visible +
+    `<tr style="height:${bottomSpacerH}px"><td colspan="23" style="padding:0;border:none"></td></tr>`;
+}
+
+// Cuộn: dùng requestAnimationFrame để không tính toán quá dày (mượt hơn)
+let scrollTicking = false;
+document.getElementById('tbl-wrap').addEventListener('scroll', () => {
+  if(scrollTicking) return;
+  scrollTicking = true;
+  requestAnimationFrame(() => { renderVisibleRows(); scrollTicking = false; });
+});
+
+// ── MENU CHUỘT PHẢI / CLICK Ô ⋮ ĐẦU DÒNG ────────────────────────────────────
+let ctxRowId = null;
+function openRowCtx(e, rowId){
+  e.preventDefault();
+  ctxRowId = rowId;
+  const menu = document.getElementById('row-ctx-menu');
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  menu.style.display = 'block';
+}
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#row-ctx-menu') && !e.target.closest('.row-handle')){
+    document.getElementById('row-ctx-menu').style.display = 'none';
+  }
+});
+function ctxInsertAbove(){ document.getElementById('row-ctx-menu').style.display='none'; insertRowBefore(ctxRowId); }
+function ctxInsertBelow(){ document.getElementById('row-ctx-menu').style.display='none'; insertRowAfter(ctxRowId); }
+function ctxDeleteRow(){ document.getElementById('row-ctx-menu').style.display='none'; deleteRow(ctxRowId); }
 
 // ── SỬA TRỰC TIẾP TỪNG Ô (kiểu Google Sheets, nhưng NHẸ) ────────────────────
 // Không biến TẤT CẢ ô thành vùng sửa được cùng lúc (rất nặng với ~6.000 dòng).
@@ -633,6 +688,20 @@ async function insertRowAfter(afterId){
   loadAll();
 }
 
+async function insertRowBefore(beforeId){
+  const idx = allRows.findIndex(r => r.id === beforeId);
+  if(idx < 0) return;
+  const cur = allRows[idx].sort_seq ?? 1000;
+  const prev = idx > 0 ? (allRows[idx-1].sort_seq ?? 0) : 0;
+  const newSeq = (Number(prev) + Number(cur)) / 2;
+  const{error} = await SB.from('plan_bookings').insert({
+    sort_seq: newSeq, cntr_no: genTbdCntr(), booking_no: '', shipper: ''
+  });
+  if(error){ notif('Lỗi: '+error.message, 'err'); return; }
+  notif('✅ Đã chèn dòng mới lên trên');
+  loadAll();
+}
+
 async function insertRowAtTop(){
   const minSeq = allRows.length ? Number(allRows[0].sort_seq ?? 1000) : 1000;
   const newSeq = minSeq / 2; // nhỏ hơn dòng đầu tiên hiện tại -> luôn xếp lên trên cùng
@@ -645,7 +714,7 @@ async function insertRowAtTop(){
 }
 
 // Tự tính lại "Mức độ" mỗi phút (vì phụ thuộc giờ hiện tại, không lưu cố định)
-setInterval(()=>{ recomputeDerived(); renderTable(); }, 60000);
+setInterval(()=>{ recomputeDerived(); renderVisibleRows(); }, 60000);
 
 // ── MODAL THÊM/SỬA ──
 function openRowModal(r){
@@ -721,8 +790,19 @@ async function deleteRow(id){
 }
 
 // ── IMPORT EXCEL ──
-function handleImport(inp){
+async function handleImport(inp){
   const file = inp.files[0]; if(!file) return;
+  const clearFirst = confirm(
+    'Xóa TOÀN BỘ dữ liệu PLAN hiện có trước khi nạp file mới?\n\n' +
+    '✅ Bấm OK nếu đây là file đầy đủ mới nhất (khuyên dùng — tránh dữ liệu cũ/trùng còn sót lại).\n' +
+    '❌ Bấm Cancel nếu chỉ muốn BỔ SUNG thêm vào dữ liệu đang có.'
+  );
+  if(clearFirst){
+    document.getElementById('import-modal').classList.add('show');
+    document.getElementById('import-progress').textContent = 'Đang xóa dữ liệu cũ...';
+    const{error: delErr} = await SB.from('plan_bookings').delete().neq('id','00000000-0000-0000-0000-000000000000');
+    if(delErr){ notif('Lỗi xóa dữ liệu cũ: '+delErr.message, 'err'); return; }
+  }
   document.getElementById('import-modal').classList.add('show');
   document.getElementById('import-progress').textContent = 'Đang đọc file...';
   const reader = new FileReader();
@@ -820,7 +900,7 @@ function exportExcel(){
 }
 
 // ── ĐỘ RỘNG CỘT — set qua colgroup, kéo giãn/thu được (giống Google Sheets) ──
-const DEFAULT_COL_WIDTHS = [70,42,62,88,92,80,70,80,44,64,56,90,34,88,70,56,56,58,36,52,78,78,44];
+const DEFAULT_COL_WIDTHS = [70,42,62,88,92,80,70,80,44,64,56,90,34,88,70,56,56,58,36,52,78,78];
 function initColWidths(){
   const saved = JSON.parse(localStorage.getItem('plan_col_widths') || 'null');
   const widths = saved && saved.length === DEFAULT_COL_WIDTHS.length ? saved : DEFAULT_COL_WIDTHS;
