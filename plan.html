@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PLAN — Kế hoạch Booking | SITC Đình Vũ CFS</title>
+<title>WAREHOUSE PLAN - KẾ HOẠCH KHO CFS | SITC Đình Vũ CFS</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -85,7 +85,7 @@ tr:hover td{background:#f8fafc}
 <body>
 
 <div class="topbar">
-  <h1>📅 PLAN — Kế hoạch Booking</h1>
+  <h1>📅 WAREHOUSE PLAN - KẾ HOẠCH KHO CFS</h1>
   <div class="sub" id="last-update"></div>
 </div>
 
@@ -103,7 +103,7 @@ tr:hover td{background:#f8fafc}
   <div class="today-bar" id="today-bar">Đang tải dữ liệu từ Google Sheets...</div>
 
   <div class="toolbar">
-    <input class="finp" id="search" placeholder="🔍 Tìm booking, cont, shipper, vessel..." oninput="renderResults()">
+    <input class="finp" id="search" placeholder="🔍 Tìm booking, cont, shipper, vessel, tờ khai..." oninput="renderResults()">
     <select class="finp" id="f-status" onchange="renderResults()">
       <option value="">Tất cả trạng thái</option>
       <option>Hoàn thành</option><option>Đã đóng hàng</option><option>Đang đóng hàng</option>
@@ -122,10 +122,12 @@ tr:hover td{background:#f8fafc}
       <thead>
         <tr>
           <th>Shipper</th><th>Line</th><th>ETD</th><th>Cutoff</th><th>Booking No.</th><th>Cntr</th>
-          <th>Type</th><th>Vessel</th><th>POD</th><th>Mức độ</th><th>Trạng thái</th>
+          <th>Seal</th><th>Seal Cus</th><th>Type</th><th>Empty Pickup</th><th>P.O.L</th><th>Vessel</th><th>CLP</th>
+          <th>CD</th><th>Remark</th><th>T/S Port</th><th>POD</th><th>D</th><th>W</th><th>M</th>
+          <th>Mức độ</th><th>Trạng thái</th>
         </tr>
       </thead>
-      <tbody id="tbody"><tr><td colspan="11"><div class="empty-state">Đang tải dữ liệu...</div></td></tr></tbody>
+      <tbody id="tbody"><tr><td colspan="22"><div class="empty-state">Đang tải dữ liệu...</div></td></tr></tbody>
     </table>
   </div>
 
@@ -298,12 +300,12 @@ function renderResults(){
   const tbody = document.getElementById('tbody');
 
   let rows = allRows;
-  if(q) rows = rows.filter(r => [r.shipper,r.booking_no,r.cntr_no,r.vessel,r.line,r.pol].some(v=>String(v||'').toLowerCase().includes(q)));
+  if(q) rows = rows.filter(r => [r.shipper,r.booking_no,r.cntr_no,r.vessel,r.line,r.pol,r.cd].some(v=>String(v||'').toLowerCase().includes(q)));
   if(fStatus) rows = rows.filter(r=>r._status===fStatus);
   if(fUrgency) rows = rows.filter(r=>r._urgency===fUrgency);
 
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">Không có dòng nào khớp</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="22"><div class="empty-state">Không có dòng nào khớp</div></td></tr>`;
     return;
   }
 
@@ -316,9 +318,20 @@ function renderResults(){
       <td>${r.cutoff_time||''} ${r.cutoff_date?fmtDateVN(r.cutoff_date):''}</td>
       <td><b>${r.booking_no||'—'}</b></td>
       <td>${r.cntr_no||'—'}</td>
+      <td>${r.seal||'—'}</td>
+      <td>${r.seal_cus||'—'}</td>
       <td>${r.cont_type||'—'}</td>
+      <td>${r.empty_pickup||'—'}</td>
+      <td>${r.pol||'—'}</td>
       <td>${r.vessel||'—'}</td>
+      <td>${r.clp||'—'}</td>
+      <td>${r.cd||'—'}</td>
+      <td>${r.remark||'—'}</td>
+      <td>${r.ts_port||'—'}</td>
       <td>${r.pod||'—'}</td>
+      <td>${r.d_date?fmtDateVN(r.d_date):'—'}</td>
+      <td>${r.w_week||'—'}</td>
+      <td>${r.m_month||'—'}</td>
       <td>${r._urgency?`<span class="badge ${urgencyBadgeClass(r._urgency)}">${r._urgency}</span>`:'—'}</td>
       <td>${r._status?`<span class="badge ${statusBadgeClass(r._status)}">${r._status}</span>`:'—'}</td>
     </tr>
