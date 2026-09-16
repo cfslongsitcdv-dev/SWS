@@ -11,7 +11,6 @@
   --bg:#f0f4f8;--s1:#fff;--s2:#f8fafc;--s3:#e2e8f0;
   --border:#e2e8f0;--border2:#cbd5e1;--r:8px;
   --blue:#2563eb;--blue-l:#eff6ff;--blue-m:#bfdbfe;
-  --teal:#0d9488;--teal-l:#f0fdfa;--teal-m:#99f6e4;
   --green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed;
   --txt:#1e293b;--txt2:#475569;--txt3:#94a3b8;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
@@ -37,6 +36,9 @@ body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14p
 .today-bar{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--txt2);display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 .today-bar b{color:var(--txt)}
 
+.section-title{font-size:14px;font-weight:700;color:var(--txt);margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+.section-hint{font-size:12px;color:var(--txt3);font-weight:400}
+
 .toolbar{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .finp{background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 12px;font-size:13px;color:var(--txt);outline:none}
 .finp:focus{border-color:var(--blue)}
@@ -44,35 +46,12 @@ body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14p
 .btn{padding:8px 14px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:#1d4ed8}
 .btn-o{background:transparent;color:var(--txt2);border:1px solid var(--border2)}.btn-o:hover{background:var(--s3)}
-.btn-g{background:var(--green);color:#fff}
-.btn-sm{padding:5px 9px;font-size:12px}
 
-.tbl-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow-x:auto;overflow-y:auto;max-height:66vh}
-table{border-collapse:separate;border-spacing:0;width:100%;font-size:10px;font-family:'Times New Roman',Times,serif;table-layout:fixed}
-th{padding:6px 5px;text-align:left;font-size:9.5px;font-weight:700;color:var(--txt3);background:#f8fafc;border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;position:sticky;top:0;z-index:2;overflow:hidden;text-overflow:ellipsis}
-td{padding:4px 5px;border-bottom:1px solid #f1f5f9;white-space:nowrap;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;height:23px;box-sizing:border-box}
-tbody tr{height:23px}
-td[data-editable]{cursor:cell}
-td[data-editable]:hover{background:#eff6ff!important;outline:1px solid var(--blue-m)}
-/* Bề rộng từng cột giờ set qua <colgroup> (JS) để kéo giãn/thu được — xem initColWidths() */
-th{position:relative}
-.col-resizer{position:absolute;right:0;top:0;bottom:0;width:6px;cursor:col-resize;z-index:5;user-select:none}
-.col-resizer:hover,.col-resizer.active{background:var(--blue)}
+.tbl-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:auto;max-height:52vh}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
+th{padding:8px 8px;text-align:left;font-size:10.5px;font-weight:700;color:var(--txt3);background:#f8fafc;border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;z-index:2}
+td{padding:7px 8px;border-bottom:1px solid #f1f5f9;white-space:nowrap;color:var(--txt2);max-width:180px;overflow:hidden;text-overflow:ellipsis}
 tr:hover td{background:#f8fafc}
-.row-picked td{background:#f1f5f9}   /* xám nhạt — mới lấy vỏ, bắt đầu */
-.row-pending td{background:#fefce8}  /* vàng nhạt — chờ đóng hàng */
-.row-loading td{background:#fff7ed}  /* cam nhạt — đang đóng hàng */
-.row-waiting td{background:#faf5ff}  /* tím nhạt — chờ tác nghiệp, cần chú ý */
-.row-loaded td{background:#eff6ff}   /* xanh dương nhạt — đã đóng hàng, sẵn sàng */
-.row-done td{background:#f0fdf4}     /* xanh lá nhạt — hoàn thành */
-.row-cancel td{background:#fef2f2}   /* đỏ nhạt — đã hủy */
-.row-picked:hover td,.row-pending:hover td,.row-loading:hover td,.row-waiting:hover td,.row-loaded:hover td,.row-done:hover td,.row-cancel:hover td{filter:brightness(0.97)}
-.pager{background:var(--s1);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);padding:8px 14px;display:flex;align-items:center;font-size:12px;color:var(--txt2)}
-.ctx-item{padding:8px 12px;border-radius:6px;cursor:pointer;color:var(--txt)}
-.ctx-item:hover{background:var(--s3)}
-.ctx-item.ctx-danger{color:var(--red)}
-.row-handle{text-align:center;color:var(--txt3);cursor:pointer;font-weight:700;background:#f8fafc!important}
-.row-handle:hover{color:var(--blue);background:#e0eaff!important}
 .badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;display:inline-block}
 .b-done{background:#dcfce7;color:#15803d}
 .b-loaded{background:#dbeafe;color:#1d4ed8}
@@ -87,28 +66,26 @@ tr:hover td{background:#f8fafc}
 .u-critical{background:#fef3c7;color:#b45309}
 .u-attention{background:#fef9c3;color:#a16207}
 .u-normal{background:#dcfce7;color:#15803d}
-.u-none{background:#f1f5f9;color:#94a3b8}
-.act-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
-.act-btn:hover{background:var(--s3)}
-.act-del:hover{background:#fee2e2;border-color:#fca5a5}
 
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:50;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.show{display:flex}
-.modal{background:#fff;border-radius:12px;max-width:860px;width:100%;max-height:90vh;overflow-y:auto;padding:24px}
-.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-.modal-hd h3{font-size:16px;font-weight:700}
-.mclose{background:var(--s3);border:none;color:var(--txt2);cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
-.flbl{font-size:11px;color:var(--txt3);font-weight:600;letter-spacing:.05em;display:block;margin-bottom:4px;text-transform:uppercase}
-.fld{margin-bottom:12px}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.modal-ft{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+.row-picked td{background:#f1f5f9}
+.row-pending td{background:#fefce8}
+.row-loading td{background:#fff7ed}
+.row-waiting td{background:#faf5ff}
+.row-loaded td{background:#eff6ff}
+.row-done td{background:#f0fdf4}
+.row-cancel td{background:#fef2f2}
 
-#import-drop{border:2px dashed var(--border2);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;color:var(--txt3)}
-#import-drop:hover{border-color:var(--blue)}
+.empty-state{text-align:center;color:var(--txt3);padding:36px;font-size:13px}
+.sheet-frame{width:100%;height:78vh;border:1px solid var(--border);border-radius:var(--r);background:#fff}
 .toast{position:fixed;bottom:20px;right:20px;background:#0f172a;color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;z-index:100;display:none;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 .toast.err{background:#b91c1c}
-.empty-state{text-align:center;color:var(--txt3);padding:48px}
+#import-progress{font-size:13px;color:var(--txt2);margin-top:10px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:50;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:12px;max-width:440px;width:100%;padding:22px}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.modal-hd h3{font-size:15px;font-weight:700}
+.mclose{background:var(--s3);border:none;color:var(--txt2);cursor:pointer;font-size:16px;width:28px;height:28px;border-radius:8px}
 </style>
 </head>
 <body>
@@ -131,19 +108,18 @@ tr:hover td{background:#f8fafc}
 
   <div class="today-bar" id="today-bar"></div>
 
+  <div class="section-title">🔍 Tra cứu nhanh <span class="section-hint">— gõ từ khóa để tìm booking/cont/shipper, không hiện toàn bộ dữ liệu cùng lúc</span></div>
   <div class="toolbar">
-    <input class="finp" id="search" placeholder="🔍 Tìm booking, cont, shipper, vessel..." oninput="renderTable()">
-    <select class="finp" id="f-status" onchange="renderTable()">
+    <input class="finp" id="search" placeholder="🔍 Tìm booking, cont, shipper, vessel..." oninput="renderResults()">
+    <select class="finp" id="f-status" onchange="renderResults()">
       <option value="">Tất cả trạng thái</option>
       <option>Hoàn thành</option><option>Đã đóng hàng</option><option>Đang đóng hàng</option>
       <option>Chờ tác nghiệp</option><option>Chờ đóng hàng</option><option>Đã lấy vỏ</option><option>Hủy</option>
     </select>
-    <select class="finp" id="f-urgency" onchange="renderTable()">
+    <select class="finp" id="f-urgency" onchange="renderResults()">
       <option value="">Tất cả mức độ</option>
       <option>Quá Hạn</option><option>Gấp</option><option>Khẩn Cấp</option><option>Cần Chú Ý</option><option>Bình Thường</option>
     </select>
-    <button class="btn btn-p" onclick="openRowModal()">+ Thêm dòng</button>
-    <button class="btn btn-o" onclick="insertRowAtTop()">⬆️ Chèn lên đầu</button>
     <button class="btn btn-o" onclick="document.getElementById('import-input').click()">📂 Import Excel
       <input type="file" id="import-input" accept=".xlsx,.xls" style="display:none" onchange="handleImport(this)">
     </button>
@@ -151,106 +127,33 @@ tr:hover td{background:#f8fafc}
     <button class="btn btn-o" onclick="loadAll()">🔄 Tải lại</button>
   </div>
 
-  <div class="tbl-wrap" id="tbl-wrap">
-    <table id="main-table">
-      <colgroup>
-        <col id="col-handle" style="width:26px">
-        <col id="col-0"><col id="col-1"><col id="col-2"><col id="col-3"><col id="col-4"><col id="col-5">
-        <col id="col-6"><col id="col-7"><col id="col-8"><col id="col-9"><col id="col-10"><col id="col-11"><col id="col-12">
-        <col id="col-13"><col id="col-14"><col id="col-15"><col id="col-16"><col id="col-17"><col id="col-18"><col id="col-19">
-        <col id="col-20"><col id="col-21">
-      </colgroup>
+  <div class="tbl-wrap">
+    <table>
       <thead>
         <tr>
-          <th style="text-align:center">⋮</th>
-          <th data-ci="0">Shipper<span class="col-resizer"></span></th><th data-ci="1">Line<span class="col-resizer"></span></th><th data-ci="2">ETD<span class="col-resizer"></span></th><th data-ci="3">Cutoff<span class="col-resizer"></span></th><th data-ci="4">Booking No.<span class="col-resizer"></span></th><th data-ci="5">Cntr<span class="col-resizer"></span></th>
-          <th data-ci="6">Seal<span class="col-resizer"></span></th><th data-ci="7">Seal Cus<span class="col-resizer"></span></th><th data-ci="8">Type<span class="col-resizer"></span></th><th data-ci="9">Empty Pickup<span class="col-resizer"></span></th><th data-ci="10">P.O.L<span class="col-resizer"></span></th><th data-ci="11">Vessel<span class="col-resizer"></span></th><th data-ci="12">CLP<span class="col-resizer"></span></th>
-          <th data-ci="13">CD<span class="col-resizer"></span></th><th data-ci="14">Remark<span class="col-resizer"></span></th><th data-ci="15">T/S Port<span class="col-resizer"></span></th><th data-ci="16">POD<span class="col-resizer"></span></th><th data-ci="17">D<span class="col-resizer"></span></th><th data-ci="18">W<span class="col-resizer"></span></th><th data-ci="19">M<span class="col-resizer"></span></th>
-          <th data-ci="20">Mức độ<span class="col-resizer"></span></th><th data-ci="21">Trạng thái</th>
+          <th>Shipper</th><th>Line</th><th>ETD</th><th>Cutoff</th><th>Booking No.</th><th>Cntr</th>
+          <th>Type</th><th>Vessel</th><th>POD</th><th>Mức độ</th><th>Trạng thái</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
-  <div class="pager">
-    <span id="pager-info"></span>
-    <span style="margin-left:auto;font-size:11px;color:var(--txt3)">Cuộn để xem thêm — click ⋮ đầu dòng hoặc chuột phải để chèn/xóa dòng</span>
-  </div>
 
-  <div id="row-ctx-menu" style="display:none;position:fixed;background:#fff;border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:200;min-width:180px;padding:4px;font-size:13px">
-    <div class="ctx-item" onclick="ctxInsertAbove()">⬆️ Chèn dòng lên trên</div>
-    <div class="ctx-item" onclick="ctxInsertBelow()">⬇️ Chèn dòng xuống dưới</div>
-    <div class="ctx-item ctx-danger" onclick="ctxDeleteRow()">🗑 Xóa dòng này</div>
-  </div>
+  <div class="section-title">📄 Dữ liệu đầy đủ (Google Sheets) <span class="section-hint">— xem/sửa chi tiết đầy đủ tại đây, mượt như mở trực tiếp</span></div>
+  <iframe class="sheet-frame" src="https://docs.google.com/spreadsheets/d/13TEChhTLNbI_2E8mu8HMJKzTt4J5C_4BNlAQLsn2-Hw/preview?gid=1892647213" loading="lazy"></iframe>
 
 </div>
 
-<!-- Modal thêm/sửa dòng -->
-<div class="modal-overlay" id="row-modal">
-  <div class="modal">
-    <div class="modal-hd">
-      <h3 id="row-modal-ttl">➕ Thêm dòng kế hoạch</h3>
-      <button class="mclose" onclick="closeRowModal()">✕</button>
-    </div>
-    <input type="hidden" id="f-id">
-    <div class="grid4">
-      <div class="fld"><label class="flbl">Shipper</label><input class="finp" id="f-shipper"></div>
-      <div class="fld"><label class="flbl">Line</label><input class="finp" id="f-line"></div>
-      <div class="fld"><label class="flbl">ETD</label><input class="finp" type="date" id="f-etd"></div>
-      <div class="fld"><label class="flbl">Cutoff Time (vd: 15H00)</label><input class="finp" id="f-cutoff-time" placeholder="15H00"></div>
-    </div>
-    <div class="grid4">
-      <div class="fld"><label class="flbl">Cutoff Date</label><input class="finp" type="date" id="f-cutoff-date"></div>
-      <div class="fld"><label class="flbl">Booking No.</label><input class="finp" id="f-booking"></div>
-      <div class="fld"><label class="flbl">Cntr</label><input class="finp" id="f-cntr"></div>
-      <div class="fld"><label class="flbl">Seal</label><input class="finp" id="f-seal"></div>
-    </div>
-    <div class="grid4">
-      <div class="fld"><label class="flbl">Seal Cus</label><input class="finp" id="f-seal-cus"></div>
-      <div class="fld"><label class="flbl">Type</label><input class="finp" id="f-type" placeholder="20GP/40HC..."></div>
-      <div class="fld"><label class="flbl">Empty Pickup</label><input class="finp" id="f-empty-pickup"></div>
-      <div class="fld"><label class="flbl">P.O.L</label><input class="finp" id="f-pol"></div>
-    </div>
-    <div class="grid4">
-      <div class="fld"><label class="flbl">Vessel</label><input class="finp" id="f-vessel"></div>
-      <div class="fld"><label class="flbl">CLP</label>
-        <select class="finp" id="f-clp">
-          <option value="">—</option>
-          <option value="OK">OK — Chờ đóng hàng</option>
-          <option value="CF">CF — Đang đóng hàng</option>
-          <option value="NF">NF — Chờ tác nghiệp</option>
-          <option value="F">F — Đã đóng hàng</option>
-          <option value="X">X — Hủy</option>
-        </select>
-      </div>
-      <div class="fld"><label class="flbl">CD</label><input class="finp" id="f-cd" placeholder="Mã CD (điền khi hoàn thành)"></div>
-      <div class="fld"><label class="flbl">T/S Port</label><input class="finp" id="f-ts-port"></div>
-    </div>
-    <div class="grid4">
-      <div class="fld"><label class="flbl">POD</label><input class="finp" id="f-pod"></div>
-      <div class="fld"><label class="flbl">D (ngày thực tế)</label><input class="finp" type="date" id="f-d-date"></div>
-      <div class="fld"><label class="flbl">W (tuần)</label><input class="finp" id="f-w-week" placeholder="W01"></div>
-      <div class="fld"><label class="flbl">M (tháng)</label><input class="finp" id="f-m-month" placeholder="T1/2026"></div>
-    </div>
-    <div class="fld"><label class="flbl">Remark</label><input class="finp" id="f-remark"></div>
-    <div class="modal-ft">
-      <button class="btn btn-o" onclick="closeRowModal()">Hủy</button>
-      <button class="btn btn-p" onclick="saveRow()">💾 Lưu</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal import -->
 <div class="modal-overlay" id="import-modal">
-  <div class="modal" style="max-width:480px">
+  <div class="modal">
     <div class="modal-hd">
       <h3>📂 Import Excel</h3>
       <button class="mclose" onclick="document.getElementById('import-modal').classList.remove('show')">✕</button>
     </div>
-    <p style="font-size:13px;color:var(--txt2);margin-bottom:14px">
-      Đọc đúng cấu trúc file gốc (header ở dòng 4). Ghi trùng theo <b>Booking No. + Cntr</b> — upload lại file cũ sẽ tự cập nhật, không tạo trùng.
+    <p style="font-size:13px;color:var(--txt2);margin-bottom:8px">
+      Cập nhật dữ liệu cho phần Dashboard + Tra cứu (không ảnh hưởng tới Google Sheets nhúng bên dưới — 2 nơi độc lập nhau).
     </p>
-    <div id="import-progress" style="font-size:13px;color:var(--txt2)"></div>
+    <div id="import-progress"></div>
   </div>
 </div>
 
@@ -261,7 +164,6 @@ const SB = supabase.createClient(
   'https://axwodulznnmvxpalkkjn.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4d29kdWx6bm5tdnhwYWxra2puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MjMxNTIsImV4cCI6MjA5Mzk5OTE1Mn0.lqNzb7BMJDG5ouD1mDnDSUuU6voL81LIH39BNO_39KI'
 );
-let IS_ADMIN = true; // Trang PLAN hiện chỉ gắn cho Admin ở tầng menu SWS ngoài
 
 let allRows = [];
 
@@ -272,7 +174,7 @@ function notif(msg, cls){
   setTimeout(()=>t.style.display='none', 3500);
 }
 
-// Supabase mặc định chỉ trả tối đa 1000 dòng/lần — với >1000 dòng PLAN phải phân trang lấy đủ.
+// Supabase mặc định chỉ trả tối đa 1000 dòng/lần — phân trang lấy đủ toàn bộ.
 async function fetchAllRows(queryFactory){
   const PAGE = 1000;
   let all = [], from = 0;
@@ -299,25 +201,14 @@ function safeDate(v){
   }catch(e){}
   return null;
 }
-// Lấy đúng NGÀY (bỏ giờ) từ ô Excel — dùng cho ETD/Cutoff Date/D vì đây là ngày lịch thuần,
-// không có ý nghĩa giờ giấc. KHÔNG dùng .toISOString() ở đây: SheetJS dựng Date object theo
-// GIỜ ĐỊA PHƯƠNG máy đọc file, còn .toISOString() quy đổi sang UTC — với múi giờ UTC+7,
-// việc quy đổi này lùi về 17h hôm trước, làm sai lệch ngày hiển thị (đã xác minh thực tế).
 function dateOnlyLocal(v){
   try{
     if(v instanceof Date){
-      // SheetJS dựng Date theo múi giờ máy đọc file, CỘNG THÊM sai số nhỏ (vài giây/phút)
-      // do số serial ngày của Excel vốn có sai số làm tròn dấu phẩy động — 2 yếu tố này
-      // cộng lại có thể đẩy giờ lệch qua nửa đêm, sai mất 1 ngày theo hướng bất kỳ.
-      // Cách sửa đúng: làm tròn về NGÀY GẦN NHẤT (theo mốc UTC tuyệt đối), không dùng
-      // getters theo giờ địa phương hay UTC trực tiếp — cả 2 đều có thể sai theo từng case.
-      // Đã kiểm chứng khớp 100% với toàn bộ 6.964 giá trị ngày thật trong file gốc.
       const roundedMs = Math.round(v.getTime() / 86400000) * 86400000;
       const r = new Date(roundedMs);
       return `${r.getUTCFullYear()}-${String(r.getUTCMonth()+1).padStart(2,'0')}-${String(r.getUTCDate()).padStart(2,'0')}`;
     }
     if(typeof v==='number'){
-      // Excel serial số ngày — không có múi giờ, quy đổi thẳng bằng UTC getters (không qua local)
       const d = new Date(Math.round((v-25569)*86400*1000));
       return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
     }
@@ -329,12 +220,8 @@ function dateOnlyLocal(v){
   }catch(e){}
   return null;
 }
-function toDateInput(iso){ return iso ? iso.slice(0,10) : ''; }
 function fmtDateVN(iso){ if(!iso) return '—'; const d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
 
-// Cntr có thể chưa biết (nhiều cont cùng 1 booking, chưa điền số) — Supabase yêu cầu
-// Booking+Cntr là duy nhất, nên khi để trống, tự gán 1 mã tạm KHÔNG BAO GIỜ trùng
-// (không hiển thị ra ngoài — xem displayCntr()).
 function genTbdCntr(){
   return 'TBD-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,7);
 }
@@ -342,7 +229,6 @@ function displayCntr(v){
   return (v && v.startsWith('TBD-')) ? '' : (v||'');
 }
 
-// ── Trạng thái (khớp đúng công thức Excel gốc, dựa trên CLP + CD + Cntr) ──
 function computeStatus(clp, cd, cntr){
   clp = (clp||'').trim().toUpperCase();
   if(clp==='X') return 'Hủy';
@@ -351,7 +237,7 @@ function computeStatus(clp, cd, cntr){
   if(clp==='NF') return 'Chờ tác nghiệp';
   if(clp==='CF') return 'Đang đóng hàng';
   if(clp==='OK') return 'Chờ đóng hàng';
-  if(displayCntr(cntr)) return 'Đã lấy vỏ'; // chỉ tính Cntr THẬT, không tính mã tạm TBD-
+  if(displayCntr(cntr)) return 'Đã lấy vỏ';
   return '';
 }
 function statusBadgeClass(s){
@@ -363,8 +249,7 @@ function rowTintClass(s){
     'Chờ tác nghiệp':'waiting','Đã đóng hàng':'loaded','Hoàn thành':'done','Hủy':'cancel'}[s] || 'none';
 }
 
-// ── Mức độ khẩn cấp (dịch nguyên công thức LET gốc — giờ làm việc CFS còn lại tới Cutoff) ──
-function isoWeekday(d){ const w=d.getDay(); return w===0?7:w; } // Mon=1..Sun=7
+function isoWeekday(d){ const w=d.getDay(); return w===0?7:w; }
 function startOfDay(d,h,m){ const x=new Date(d); x.setHours(h,m||0,0,0); return x; }
 function dateOnly(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
 
@@ -376,7 +261,7 @@ function computeMucDo(cutoffDateISO, cutoffTimeStr, status, nowDate){
   const hh = +m[1], mm = +m[2];
   let cutoff = new Date(cutoffDateISO); cutoff.setHours(hh, mm, 0, 0);
 
-  if(isoWeekday(cutoff) === 7){ // Cutoff rơi vào CN → lùi về T7 11h30
+  if(isoWeekday(cutoff) === 7){
     cutoff = new Date(cutoff); cutoff.setDate(cutoff.getDate()-1); cutoff.setHours(11,30,0,0);
   }
 
@@ -385,13 +270,13 @@ function computeMucDo(cutoffDateISO, cutoffTimeStr, status, nowDate){
   const tNow = (now.getHours()*3600+now.getMinutes()*60+now.getSeconds())/86400;
   let nowEff = new Date(now);
 
-  if(dowNow===7){ // Chủ nhật
+  if(dowNow===7){
     if(tNow < 8.5/24) nowEff = startOfDay(now,8,30);
     else if(tNow > 11.5/24){ nowEff = startOfDay(now,8,0); nowEff.setDate(nowEff.getDate()+1); }
-  } else if(dowNow===6){ // Thứ 7
+  } else if(dowNow===6){
     if(tNow > 17.25/24){ nowEff = startOfDay(now,8,30); nowEff.setDate(nowEff.getDate()+2); }
     else if(tNow < 8/24) nowEff = startOfDay(now,8,0);
-  } else { // T2-T6
+  } else {
     if(tNow < 8/24) nowEff = startOfDay(now,8,0);
     else if(tNow > 17.25/24){
       const nextDay = new Date(now); nextDay.setDate(nextDay.getDate()+1);
@@ -402,7 +287,6 @@ function computeMucDo(cutoffDateISO, cutoffTimeStr, status, nowDate){
   }
 
   const days = Math.round((dateOnly(cutoff) - dateOnly(nowEff)) / 86400000);
-
   const dowStart = isoWeekday(nowEff);
   const dayEnd = dowStart===7 ? startOfDay(nowEff,11,30) : startOfDay(nowEff,17,15);
   const cappedEnd = Math.min(dayEnd.getTime(), cutoff.getTime());
@@ -431,28 +315,17 @@ function computeMucDo(cutoffDateISO, cutoffTimeStr, status, nowDate){
   return 'Bình Thường';
 }
 function urgencyBadgeClass(u){
-  return {'Quá Hạn':'u-overdue','Gấp':'u-urgent','Khẩn Cấp':'u-critical','Cần Chú Ý':'u-attention','Bình Thường':'u-normal'}[u] || 'u-none';
+  return {'Quá Hạn':'u-overdue','Gấp':'u-urgent','Khẩn Cấp':'u-critical','Cần Chú Ý':'u-attention','Bình Thường':'u-normal'}[u] || '';
 }
 
-// ── LOAD ──
 async function loadAll(){
-  const wrap = document.getElementById('tbl-wrap');
-  const keepScroll = wrap.scrollTop; // giữ nguyên vị trí đang xem, không nhảy về đầu
-  allRows = await fetchAllRows(()=> SB.from('plan_bookings').select('*').order('sort_seq',{ascending:true, nullsFirst:false}));
+  allRows = await fetchAllRows(()=> SB.from('plan_bookings').select('*'));
   document.getElementById('last-update').textContent = 'Cập nhật: ' + new Date().toLocaleString('vi-VN');
   recomputeDerived();
   renderStats();
-  renderTable(false); // false = không reset cuộn về đầu
-  // Đợi trình duyệt vẽ xong khung hiện tại rồi mới khôi phục scrollTop — tránh bị
-  // trình duyệt "kẹp" nhầm về giá trị nhỏ hơn khi nội dung/chiều cao chưa ổn định.
-  requestAnimationFrame(() => {
-    wrap.scrollTop = keepScroll;
-    renderVisibleRows(true);
-  });
+  renderResults();
 }
 
-// Tính "Trạng thái" + "Mức độ" cho TỪNG dòng 1 lần duy nhất (không tính lại mỗi lần gõ
-// tìm kiếm/lọc) — vì tính riêng cho ~6.000 dòng mỗi lần gõ phím gây giật/lag rõ rệt.
 function recomputeDerived(){
   const now = new Date();
   allRows.forEach(r => {
@@ -493,354 +366,62 @@ function renderStats(){
     `✅ <b>${tDone}</b> hoàn thành &nbsp; 📦 <b>${tLoaded}</b> đã đóng &nbsp; 🔄 <b>${tLoading}</b> đang đóng &nbsp; ⏳ <b>${tWaiting}</b> chờ tác nghiệp`;
 }
 
-// ── VIRTUAL SCROLL: chỉ vẽ ~40-60 dòng đang hiện trên màn hình, không vẽ hết
-// 5.900+ dòng cùng lúc. Đây là kỹ thuật Google Sheets/các bảng lớn đều dùng —
-// cuộn tới đâu, JS tính lại "dòng nào đang trong khung nhìn" rồi mới vẽ đúng
-// đoạn đó, phần trên/dưới để trống bằng 2 spacer giữ đúng chiều cao cuộn.
-let ROW_H = 23; // giá trị khởi tạo — sẽ tự ĐO LẠI chính xác từ trình duyệt sau khi vẽ lần đầu
-                 // (xem calibrateRowHeight) để tránh sai số cộng dồn qua hàng nghìn dòng
-const BUFFER = 15; // vẽ dư thêm mỗi phía để cuộn nhanh không bị giật/trắng
-let filteredRows = [];
-
-// Đo lại chiều cao THẬT của 1 dòng đã vẽ trên trình duyệt — nếu lệch so với ROW_H
-// giả định (dù chỉ vài phần trăm px), sửa lại và vẽ lại toàn bộ theo số đo đúng.
-// Sai số nhỏ này, nếu không sửa, cộng dồn qua ~6.000 dòng có thể lệch hàng nghìn px,
-// khiến virtual scroll tính sai vùng hiển thị đúng lúc cuộn gần cuối bảng.
-let calibrated = false;
-function calibrateRowHeight(){
-  const sample = document.querySelector('#tbody tr[data-id]');
-  if(!sample) return;
-  const real = sample.getBoundingClientRect().height;
-  if(real > 5 && Math.abs(real - ROW_H) > 0.3){
-    ROW_H = real;
-    lastStart = lastEnd = lastTotal = -1; // buộc vẽ lại với số đo mới
-    renderVisibleRows(true);
-  }
-  calibrated = true;
-}
-
-function renderTable(resetScroll = true){
+const MAX_RESULTS = 300;
+function renderResults(){
   const q = (document.getElementById('search').value||'').trim().toLowerCase();
   const fStatus = document.getElementById('f-status').value;
   const fUrgency = document.getElementById('f-urgency').value;
-
-  let rows = allRows; // _status/_urgency đã được tính sẵn trong recomputeDerived()
-  if(q){
-    rows = rows.filter(r => [r.shipper,r.booking_no,r.cntr_no,r.vessel,r.line,r.pol].some(v=>String(v||'').toLowerCase().includes(q)));
-  }
-  if(fStatus) rows = rows.filter(r=>r._status===fStatus);
-  if(fUrgency) rows = rows.filter(r=>r._urgency===fUrgency);
-
-  filteredRows = rows;
-  document.getElementById('pager-info').textContent = `${rows.length.toLocaleString()} dòng khớp bộ lọc`;
-  if(resetScroll) document.getElementById('tbl-wrap').scrollTop = 0;
-  renderVisibleRows(true);
-}
-
-function rowHTML(r){
-  return `
-    <tr class="row-${rowTintClass(r._status)}" data-id="${r.id}" style="height:${ROW_H}px">
-      <td class="row-handle" onclick="openRowCtx(event,'${r.id}')" oncontextmenu="openRowCtx(event,'${r.id}');return false">⋮</td>
-      <td data-editable data-field="shipper">${r.shipper||''}</td>
-      <td data-editable data-field="line">${r.line||''}</td>
-      <td data-editable data-field="etd" data-type="date">${r.etd?fmtDateVN(r.etd):''}</td>
-      <td data-editable data-field="cutoff_time" data-type="text">${r.cutoff_time||''} ${r.cutoff_date?fmtDateVN(r.cutoff_date):''}</td>
-      <td data-editable data-field="booking_no"><b>${r.booking_no||''}</b></td>
-      <td data-editable data-field="cntr_no" data-type="cntr">${displayCntr(r.cntr_no)}</td>
-      <td data-editable data-field="seal">${r.seal||''}</td>
-      <td data-editable data-field="seal_cus">${r.seal_cus||''}</td>
-      <td data-editable data-field="cont_type">${r.cont_type||''}</td>
-      <td data-editable data-field="empty_pickup">${r.empty_pickup||''}</td>
-      <td data-editable data-field="pol">${r.pol||''}</td>
-      <td data-editable data-field="vessel">${r.vessel||''}</td>
-      <td data-editable data-field="clp" data-type="upper">${r.clp||''}</td>
-      <td data-editable data-field="cd">${r.cd||''}</td>
-      <td data-editable data-field="remark">${r.remark||''}</td>
-      <td data-editable data-field="ts_port">${r.ts_port||''}</td>
-      <td data-editable data-field="pod">${r.pod||''}</td>
-      <td data-editable data-field="d_date" data-type="date">${r.d_date?fmtDateVN(r.d_date):''}</td>
-      <td data-editable data-field="w_week">${r.w_week||''}</td>
-      <td data-editable data-field="m_month">${r.m_month||''}</td>
-      <td>${r._urgency?`<span class="badge ${urgencyBadgeClass(r._urgency)}">${r._urgency}</span>`:'—'}</td>
-      <td>${r._status?`<span class="badge ${statusBadgeClass(r._status)}">${r._status}</span>`:'—'}</td>
-    </tr>`;
-}
-
-let lastStart = -1, lastEnd = -1, lastTotal = -1;
-function renderVisibleRows(force){
   const tbody = document.getElementById('tbody');
-  const wrap = document.getElementById('tbl-wrap');
-  const total = filteredRows.length;
 
-  if(!total){
-    tbody.innerHTML = `<tr><td colspan="23"><div class="empty-state">Không có dòng nào khớp bộ lọc</div></td></tr>`;
-    lastStart = lastEnd = lastTotal = -1;
+  if(!q && !fStatus && !fUrgency){
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">Gõ từ khóa hoặc chọn bộ lọc để tra cứu — không hiện toàn bộ ${allRows.length.toLocaleString()} dòng cùng lúc</div></td></tr>`;
     return;
   }
 
-  const scrollTop = wrap.scrollTop;
-  const viewportH = wrap.clientHeight;
-  let start = Math.floor(scrollTop / ROW_H) - BUFFER;
-  let end = Math.ceil((scrollTop + viewportH) / ROW_H) + BUFFER;
-  start = Math.max(0, start);
-  end = Math.min(total, end);
+  let rows = allRows;
+  if(q) rows = rows.filter(r => [r.shipper,r.booking_no,r.cntr_no,r.vessel,r.line,r.pol].some(v=>String(v||'').toLowerCase().includes(q)));
+  if(fStatus) rows = rows.filter(r=>r._status===fStatus);
+  if(fUrgency) rows = rows.filter(r=>r._urgency===fUrgency);
 
-  // Vùng đang hiện chưa đổi (vẫn đúng những dòng đã vẽ) -> KHÔNG vẽ lại.
-  // Đây là nguyên nhân chính gây giật/đứng: trước đây MỖI khung hình cuộn đều
-  // phá-dựng-lại toàn bộ tbody, kể cả khi chẳng có gì thay đổi để vẽ thêm.
-  if(!force && start === lastStart && end === lastEnd && total === lastTotal) return;
-  lastStart = start; lastEnd = end; lastTotal = total;
-
-  const topSpacerH = start * ROW_H;
-  const bottomSpacerH = (total - end) * ROW_H;
-  const visible = filteredRows.slice(start, end).map(rowHTML).join('');
-
-  tbody.innerHTML =
-    `<tr style="height:${topSpacerH}px"><td colspan="23" style="padding:0;border:none"></td></tr>` +
-    visible +
-    `<tr style="height:${bottomSpacerH}px"><td colspan="23" style="padding:0;border:none"></td></tr>`;
-
-  if(!calibrated) requestAnimationFrame(calibrateRowHeight);
-}
-
-// Cuộn: dùng requestAnimationFrame để không tính toán quá dày (mượt hơn)
-let scrollTicking = false;
-document.getElementById('tbl-wrap').addEventListener('scroll', () => {
-  if(scrollTicking) return;
-  scrollTicking = true;
-  requestAnimationFrame(() => { renderVisibleRows(); scrollTicking = false; });
-});
-
-// ── MENU CHUỘT PHẢI / CLICK Ô ⋮ ĐẦU DÒNG ────────────────────────────────────
-let ctxRowId = null;
-function openRowCtx(e, rowId){
-  e.preventDefault();
-  ctxRowId = rowId;
-  const menu = document.getElementById('row-ctx-menu');
-  menu.style.left = e.clientX + 'px';
-  menu.style.top = e.clientY + 'px';
-  menu.style.display = 'block';
-}
-document.addEventListener('click', (e) => {
-  if(!e.target.closest('#row-ctx-menu') && !e.target.closest('.row-handle')){
-    document.getElementById('row-ctx-menu').style.display = 'none';
+  if(!rows.length){
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">Không có dòng nào khớp</div></td></tr>`;
+    return;
   }
-});
-function ctxInsertAbove(){ document.getElementById('row-ctx-menu').style.display='none'; insertRowBefore(ctxRowId); }
-function ctxInsertBelow(){ document.getElementById('row-ctx-menu').style.display='none'; insertRowAfter(ctxRowId); }
-function ctxDeleteRow(){ document.getElementById('row-ctx-menu').style.display='none'; deleteRow(ctxRowId); }
 
-// ── SỬA TRỰC TIẾP TỪNG Ô (kiểu Google Sheets, nhưng NHẸ) ────────────────────
-// Không biến TẤT CẢ ô thành vùng sửa được cùng lúc (rất nặng với ~6.000 dòng).
-// Thay vào đó: click vào ô nào, CHỈ ô đó mới biến thành ô nhập tạm thời; các ô
-// khác vẫn là chữ thường (rẻ cho trình duyệt). Đúng cảm giác Google Sheets,
-// nhẹ hơn nhiều so với contenteditable hàng loạt.
-document.getElementById('tbody').addEventListener('click', (e) => {
-  const td = e.target.closest('td[data-editable]');
-  if(!td || td.querySelector('input')) return; // đã đang sửa sẵn thì thôi
-  activateCellEdit(td);
-});
-
-function activateCellEdit(td){
-  const field = td.dataset.field;
-  const type = td.dataset.type || 'text';
-  const tr = td.closest('tr');
-  const id = tr.dataset.id;
-  const row = allRows.find(r => r.id === id);
-  if(!row) return;
-
-  // Giá trị gốc để hiện trong ô nhập — với ngày thì hiện dạng dd/mm/yyyy quen thuộc,
-  // với cntr thì hiện bản ĐÃ ẨN mã tạm (không lộ TBD-...).
-  let editVal;
-  if(type === 'date') editVal = row[field] ? fmtDateVN(row[field]) : '';
-  else if(type === 'cntr') editVal = displayCntr(row.cntr_no);
-  else editVal = row[field] || '';
-
-  const originalHTML = td.innerHTML;
-  td.innerHTML = `<input type="text" style="width:100%;border:none;outline:none;font:inherit;background:transparent;padding:0">`;
-  const inp = td.querySelector('input');
-  inp.value = editVal;
-  inp.focus();
-  inp.select();
-
-  let done = false;
-  const finish = async (save) => {
-    if(done) return; done = true;
-    const raw = inp.value.trim();
-    if(!save){ td.innerHTML = originalHTML; return; }
-
-    let value = raw, displayBack = raw;
-    if(type === 'date'){
-      value = raw ? parseFlexDateVN(raw) : null;
-      if(raw && !value){ notif('Ngày không hợp lệ (dd/mm/yyyy), giữ nguyên giá trị cũ', 'err'); td.innerHTML = originalHTML; return; }
-      displayBack = value ? fmtDateVN(value) : '';
-    } else if(type === 'upper'){
-      value = raw.toUpperCase(); displayBack = value;
-    } else if(type === 'cntr'){
-      value = raw || genTbdCntr(); displayBack = raw;
-    }
-
-    if(String(row[field]||'') === String(value||'')){ td.innerHTML = originalHTML; return; }
-
-    td.textContent = displayBack; // hiện tạm ngay, không đợi mạng — cảm giác nhanh như Sheets
-    const{error} = await SB.from('plan_bookings').update({[field]: value, updated_at: new Date().toISOString()}).eq('id', id);
-    if(error){ notif('Lỗi lưu: '+error.message, 'err'); td.innerHTML = originalHTML; return; }
-    row[field] = value;
-    if(field==='clp' || field==='cd' || field==='cntr_no'){
-      row._status = computeStatus(row.clp, row.cd, row.cntr_no);
-      row._urgency = computeMucDo(row.cutoff_date, row.cutoff_time, row._status, new Date());
-      renderTable();
-    }
-  };
-
-  inp.addEventListener('blur', () => finish(true));
-  inp.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter'){ e.preventDefault(); finish(true); }
-    if(e.key === 'Escape'){ e.preventDefault(); finish(false); }
-  });
+  const shown = rows.slice(0, MAX_RESULTS);
+  tbody.innerHTML = shown.map(r => `
+    <tr class="row-${rowTintClass(r._status)}">
+      <td>${r.shipper||'—'}</td>
+      <td>${r.line||'—'}</td>
+      <td>${r.etd?fmtDateVN(r.etd):'—'}</td>
+      <td>${r.cutoff_time||''} ${r.cutoff_date?fmtDateVN(r.cutoff_date):''}</td>
+      <td><b>${r.booking_no||'—'}</b></td>
+      <td>${displayCntr(r.cntr_no)||'—'}</td>
+      <td>${r.cont_type||'—'}</td>
+      <td>${r.vessel||'—'}</td>
+      <td>${r.pod||'—'}</td>
+      <td>${r._urgency?`<span class="badge ${urgencyBadgeClass(r._urgency)}">${r._urgency}</span>`:'—'}</td>
+      <td>${r._status?`<span class="badge ${statusBadgeClass(r._status)}">${r._status}</span>`:'—'}</td>
+    </tr>
+  `).join('') + (rows.length > MAX_RESULTS
+    ? `<tr><td colspan="11"><div class="empty-state">Khớp ${rows.length.toLocaleString()} dòng — chỉ hiện ${MAX_RESULTS} dòng đầu, thu hẹp tìm kiếm để xem chính xác hơn</div></td></tr>`
+    : '');
 }
 
-function parseFlexDateVN(s){
-  const m = s.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if(!m) return null;
-  const dd=+m[1], mm=+m[2], yyyy=+m[3];
-  if(mm<1||mm>12||dd<1||dd>31) return null;
-  return `${yyyy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
-}
-
-// ── CHÈN DÒNG MỚI Ở BẤT KỲ VỊ TRÍ NÀO (kiểu Google Sheets) ──────────────────
-// Dùng "sort_seq" dạng số thập phân — chèn giữa 2 dòng chỉ cần lấy trung bình cộng
-// 2 sort_seq liền kề, không cần đánh số lại toàn bộ bảng.
-async function insertRowAfter(afterId){
-  const idx = allRows.findIndex(r => r.id === afterId);
-  if(idx < 0) return;
-  const cur = allRows[idx].sort_seq ?? 0;
-  const next = allRows[idx+1] ? (allRows[idx+1].sort_seq ?? cur+2000) : cur+2000;
-  const newSeq = (Number(cur) + Number(next)) / 2;
-  const{error} = await SB.from('plan_bookings').insert({
-    sort_seq: newSeq, cntr_no: genTbdCntr(), booking_no: '', shipper: ''
-  });
-  if(error){ notif('Lỗi: '+error.message, 'err'); return; }
-  notif('✅ Đã chèn dòng mới — kéo xuống để điền thông tin');
-  loadAll();
-}
-
-async function insertRowBefore(beforeId){
-  const idx = allRows.findIndex(r => r.id === beforeId);
-  if(idx < 0) return;
-  const cur = allRows[idx].sort_seq ?? 1000;
-  const prev = idx > 0 ? (allRows[idx-1].sort_seq ?? 0) : 0;
-  const newSeq = (Number(prev) + Number(cur)) / 2;
-  const{error} = await SB.from('plan_bookings').insert({
-    sort_seq: newSeq, cntr_no: genTbdCntr(), booking_no: '', shipper: ''
-  });
-  if(error){ notif('Lỗi: '+error.message, 'err'); return; }
-  notif('✅ Đã chèn dòng mới lên trên');
-  loadAll();
-}
-
-async function insertRowAtTop(){
-  const minSeq = allRows.length ? Number(allRows[0].sort_seq ?? 1000) : 1000;
-  const newSeq = minSeq / 2; // nhỏ hơn dòng đầu tiên hiện tại -> luôn xếp lên trên cùng
-  const{error} = await SB.from('plan_bookings').insert({
-    sort_seq: newSeq, cntr_no: genTbdCntr(), booking_no: '', shipper: ''
-  });
-  if(error){ notif('Lỗi: '+error.message, 'err'); return; }
-  notif('✅ Đã chèn dòng lên đầu bảng');
-  loadAll();
-}
-
-// Tự tính lại "Mức độ" mỗi phút (vì phụ thuộc giờ hiện tại, không lưu cố định)
-setInterval(()=>{ recomputeDerived(); renderVisibleRows(true); }, 60000);
-
-// ── MODAL THÊM/SỬA ──
-function openRowModal(r){
-  document.getElementById('row-modal-ttl').textContent = r ? '✏️ Sửa dòng kế hoạch' : '➕ Thêm dòng kế hoạch';
-  document.getElementById('f-id').value = r?.id || '';
-  document.getElementById('f-shipper').value = r?.shipper || '';
-  document.getElementById('f-line').value = r?.line || '';
-  document.getElementById('f-etd').value = toDateInput(r?.etd);
-  document.getElementById('f-cutoff-time').value = r?.cutoff_time || '';
-  document.getElementById('f-cutoff-date').value = toDateInput(r?.cutoff_date);
-  document.getElementById('f-booking').value = r?.booking_no || '';
-  document.getElementById('f-cntr').value = displayCntr(r?.cntr_no);
-  document.getElementById('f-seal').value = r?.seal || '';
-  document.getElementById('f-seal-cus').value = r?.seal_cus || '';
-  document.getElementById('f-type').value = r?.cont_type || '';
-  document.getElementById('f-empty-pickup').value = r?.empty_pickup || '';
-  document.getElementById('f-pol').value = r?.pol || '';
-  document.getElementById('f-vessel').value = r?.vessel || '';
-  document.getElementById('f-clp').value = r?.clp || '';
-  document.getElementById('f-cd').value = r?.cd || '';
-  document.getElementById('f-ts-port').value = r?.ts_port || '';
-  document.getElementById('f-pod').value = r?.pod || '';
-  document.getElementById('f-d-date').value = toDateInput(r?.d_date);
-  document.getElementById('f-w-week').value = r?.w_week || '';
-  document.getElementById('f-m-month').value = r?.m_month || '';
-  document.getElementById('f-remark').value = r?.remark || '';
-  document.getElementById('row-modal').classList.add('show');
-}
-function closeRowModal(){ document.getElementById('row-modal').classList.remove('show'); }
-
-async function saveRow(){
-  const id = document.getElementById('f-id').value;
-  const payload = {
-    // Dòng thêm tay mới xếp SAU toàn bộ dữ liệu import (sort_seq lớn dần theo thời gian tạo)
-    ...(id ? {} : {sort_seq: Date.now()}),
-    shipper: document.getElementById('f-shipper').value.trim(),
-    line: document.getElementById('f-line').value.trim(),
-    etd: document.getElementById('f-etd').value || null,
-    cutoff_time: document.getElementById('f-cutoff-time').value.trim(),
-    cutoff_date: document.getElementById('f-cutoff-date').value || null,
-    booking_no: document.getElementById('f-booking').value.trim(),
-    cntr_no: document.getElementById('f-cntr').value.trim() || genTbdCntr(),
-    seal: document.getElementById('f-seal').value.trim(),
-    seal_cus: document.getElementById('f-seal-cus').value.trim(),
-    cont_type: document.getElementById('f-type').value.trim(),
-    empty_pickup: document.getElementById('f-empty-pickup').value.trim(),
-    pol: document.getElementById('f-pol').value.trim(),
-    vessel: document.getElementById('f-vessel').value.trim(),
-    clp: document.getElementById('f-clp').value,
-    cd: document.getElementById('f-cd').value.trim(),
-    ts_port: document.getElementById('f-ts-port').value.trim(),
-    pod: document.getElementById('f-pod').value.trim(),
-    d_date: document.getElementById('f-d-date').value || null,
-    w_week: document.getElementById('f-w-week').value.trim(),
-    m_month: document.getElementById('f-m-month').value.trim(),
-    remark: document.getElementById('f-remark').value.trim(),
-    updated_at: new Date().toISOString(),
-  };
-  let error;
-  if(id){ ({error} = await SB.from('plan_bookings').update(payload).eq('id', id)); }
-  else{ ({error} = await SB.from('plan_bookings').insert(payload)); }
-  if(error){ notif('Lỗi: '+error.message, 'err'); return; }
-  notif(id ? '✅ Đã cập nhật' : '✅ Đã thêm dòng mới');
-  closeRowModal();
-  loadAll();
-}
-
-async function deleteRow(id){
-  if(!confirm('Xóa dòng này khỏi kế hoạch?')) return;
-  const {error} = await SB.from('plan_bookings').delete().eq('id', id);
-  if(error){ notif('Lỗi: '+error.message, 'err'); return; }
-  notif('✅ Đã xóa'); loadAll();
-}
-
-// ── IMPORT EXCEL ──
 async function handleImport(inp){
   const file = inp.files[0]; if(!file) return;
   const clearFirst = confirm(
-    'Xóa TOÀN BỘ dữ liệu PLAN hiện có trước khi nạp file mới?\n\n' +
-    '✅ Bấm OK nếu đây là file đầy đủ mới nhất (khuyên dùng — tránh dữ liệu cũ/trùng còn sót lại).\n' +
-    '❌ Bấm Cancel nếu chỉ muốn BỔ SUNG thêm vào dữ liệu đang có.'
+    'Xóa TOÀN BỘ dữ liệu PLAN hiện có (trong Dashboard/Tra cứu) trước khi nạp file mới?\n\n' +
+    '✅ Bấm OK nếu đây là file đầy đủ mới nhất (khuyên dùng).\n' +
+    '❌ Bấm Cancel nếu chỉ muốn BỔ SUNG thêm vào dữ liệu đang có.\n\n' +
+    '(Không ảnh hưởng gì tới Google Sheets nhúng bên dưới — 2 nơi độc lập nhau.)'
   );
+  document.getElementById('import-modal').classList.add('show');
   if(clearFirst){
-    document.getElementById('import-modal').classList.add('show');
     document.getElementById('import-progress').textContent = 'Đang xóa dữ liệu cũ...';
     const{error: delErr} = await SB.from('plan_bookings').delete().neq('id','00000000-0000-0000-0000-000000000000');
     if(delErr){ notif('Lỗi xóa dữ liệu cũ: '+delErr.message, 'err'); return; }
   }
-  document.getElementById('import-modal').classList.add('show');
   document.getElementById('import-progress').textContent = 'Đang đọc file...';
   const reader = new FileReader();
   reader.onload = async (e) => {
@@ -848,12 +429,10 @@ async function handleImport(inp){
       const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-      // Header nằm ở dòng 4 (index 3), dữ liệu từ dòng 5 (index 4) — đúng cấu trúc file gốc
-      const dataRows = rows.slice(4).filter(r => r[5] || r[6]); // có Booking No. hoặc Cntr
-      document.getElementById('import-progress').textContent = `Đọc được ${dataRows.length} dòng. Đang tải lên...`;
+      const dataRows = rows.slice(4).filter(r => r[5] || r[6]);
 
       const payload = dataRows.map((r,idx) => ({
-        sort_seq: (idx + 1) * 1000, // chừa khoảng trống để sau này chèn dòng xen giữa
+        sort_seq: (idx+1)*1000,
         shipper: String(r[0]||'').trim(),
         line: String(r[1]||'').trim(),
         etd: r[2] ? dateOnlyLocal(r[2]) : null,
@@ -877,25 +456,14 @@ async function handleImport(inp){
         m_month: String(r[20]||'').trim(),
       })).filter(r => r.booking_no || r.cntr_no);
 
-      // Cntr có thể chưa biết (nhiều cont cùng 1 booking, chưa điền số) — gán mã tạm
-      // riêng biệt cho từng dòng trống Cntr, để KHÔNG bị coi là trùng nhau (Booking+Cntr
-      // rỗng giống hệt nhau sẽ vi phạm ràng buộc duy nhất nếu không xử lý bước này).
       payload.forEach(r => { if(!r.cntr_no) r.cntr_no = genTbdCntr(); });
 
-      // Loại trùng khóa THẬT (Booking No. + Cntr cùng có giá trị thật, trùng nhau) trong
-      // chính lô đang import — Postgres không cho ON CONFLICT xử lý 2 lần cùng 1 khóa
-      // trong 1 lệnh upsert. Dòng nào trùng khóa, giữ dòng xuất hiện sau cùng trong file.
       const dedupMap = new Map();
-      let dupCount = 0;
       for(const r of payload){
         const key = r.booking_no + '||' + r.cntr_no;
-        if(dedupMap.has(key)) dupCount++;
         dedupMap.set(key, r);
       }
       const dedupedPayload = Array.from(dedupMap.values());
-      if(dupCount){
-        document.getElementById('import-progress').textContent = `Đọc được ${payload.length} dòng, phát hiện ${dupCount} dòng trùng khóa Booking+Cntr → giữ lại ${dedupedPayload.length} dòng. Đang tải lên...`;
-      }
 
       let done = 0;
       for(let i=0; i<dedupedPayload.length; i+=500){
@@ -918,7 +486,6 @@ async function handleImport(inp){
   reader.readAsArrayBuffer(file);
 }
 
-// ── XUẤT EXCEL ──
 function exportExcel(){
   if(!allRows.length) return;
   const rows = [['Shipper','Line','ETD','Cutoff Time','Cutoff Date','Booking No.','Cntr','Seal','Seal Cus','Type','Empty Pickup','P.O.L','Vessel','CLP','Remark','CD','T/S Port','POD','D','W','M','Mức độ','Trạng thái']];
@@ -936,45 +503,7 @@ function exportExcel(){
   XLSX.writeFile(wb, `PLAN_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-// ── ĐỘ RỘNG CỘT — set qua colgroup, kéo giãn/thu được (giống Google Sheets) ──
-const DEFAULT_COL_WIDTHS = [70,42,62,88,92,80,70,80,44,64,56,90,34,88,70,56,56,58,36,52,78,78];
-function initColWidths(){
-  const saved = JSON.parse(localStorage.getItem('plan_col_widths') || 'null');
-  const widths = saved && saved.length === DEFAULT_COL_WIDTHS.length ? saved : DEFAULT_COL_WIDTHS;
-  widths.forEach((w,i) => { const col = document.getElementById('col-'+i); if(col) col.style.width = w+'px'; });
-}
-function saveColWidths(){
-  const widths = DEFAULT_COL_WIDTHS.map((_,i) => {
-    const col = document.getElementById('col-'+i);
-    return col ? parseInt(col.style.width) || DEFAULT_COL_WIDTHS[i] : DEFAULT_COL_WIDTHS[i];
-  });
-  localStorage.setItem('plan_col_widths', JSON.stringify(widths));
-}
-initColWidths();
-
-document.querySelectorAll('.col-resizer').forEach(handle => {
-  handle.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    const th = handle.closest('th');
-    const ci = th.dataset.ci;
-    const col = document.getElementById('col-'+ci);
-    const startX = e.clientX;
-    const startWidth = col.getBoundingClientRect().width;
-    handle.classList.add('active');
-    function onMove(ev){
-      const newWidth = Math.max(28, startWidth + (ev.clientX - startX));
-      col.style.width = newWidth + 'px';
-    }
-    function onUp(){
-      handle.classList.remove('active');
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      saveColWidths();
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
-});
+setInterval(()=>{ recomputeDerived(); renderResults(); }, 60000);
 
 loadAll();
 </script>
