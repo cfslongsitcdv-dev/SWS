@@ -47,7 +47,7 @@ body{background:var(--bg);color:var(--txt);font-family:var(--sans);font-size:14p
 .btn-o{background:transparent;color:var(--txt2);border:1px solid var(--border2)}.btn-o:hover{background:var(--s3)}
 .btn[disabled]{opacity:.6;cursor:default}
 
-.tbl-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:auto;max-height:52vh}
+.tbl-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:auto;max-height:68vh}
 table{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
 th{padding:8px 8px;text-align:left;font-size:10.5px;font-weight:700;color:var(--txt3);background:#f8fafc;border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;z-index:2}
 td{padding:7px 8px;border-bottom:1px solid #f1f5f9;white-space:nowrap;color:var(--txt2);max-width:180px;overflow:hidden;text-overflow:ellipsis}
@@ -76,7 +76,6 @@ tr:hover td{background:#f8fafc}
 .row-cancel td{background:#fef2f2}
 
 .empty-state{text-align:center;color:var(--txt3);padding:36px;font-size:13px}
-.sheet-frame{width:100%;height:78vh;border:1px solid var(--border);border-radius:var(--r);background:#fff}
 .toast{position:fixed;bottom:20px;right:20px;background:#0f172a;color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;z-index:100;display:none;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 .toast.err{background:#b91c1c}
 .spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
@@ -103,7 +102,6 @@ tr:hover td{background:#f8fafc}
 
   <div class="today-bar" id="today-bar">Đang tải dữ liệu từ Google Sheets...</div>
 
-  <div class="section-title">🔍 Tra cứu nhanh <span class="section-hint">— gõ từ khóa để tìm booking/cont/shipper, không hiện toàn bộ dữ liệu cùng lúc</span></div>
   <div class="toolbar">
     <input class="finp" id="search" placeholder="🔍 Tìm booking, cont, shipper, vessel..." oninput="renderResults()">
     <select class="finp" id="f-status" onchange="renderResults()">
@@ -130,13 +128,6 @@ tr:hover td{background:#f8fafc}
       <tbody id="tbody"><tr><td colspan="11"><div class="empty-state">Đang tải dữ liệu...</div></td></tr></tbody>
     </table>
   </div>
-
-  <div class="section-title">📄 Dữ liệu đầy đủ (Google Sheets)
-    <span class="section-hint">— xem/sửa chi tiết tại đây, mượt như mở trực tiếp. Độ rộng cột do chính Google Sheets quyết định — muốn gọn hơn, chỉnh độ rộng cột trong Sheet gốc.</span>
-  </div>
-  <iframe id="sheet-iframe" class="sheet-frame"
-    src="https://docs.google.com/spreadsheets/d/13TEChhTLNbI_2E8mu8HMJKzTt4J5C_4BNlAQLsn2-Hw/preview?gid=1892647213&range=A4"
-    loading="lazy"></iframe>
 
 </div>
 
@@ -300,17 +291,11 @@ function renderStats(){
     `✅ <b>${tDone}</b> hoàn thành &nbsp; 📦 <b>${tLoaded}</b> đã đóng &nbsp; 🔄 <b>${tLoading}</b> đang đóng &nbsp; ⏳ <b>${tWaiting}</b> chờ tác nghiệp`;
 }
 
-const MAX_RESULTS = 300;
 function renderResults(){
   const q = (document.getElementById('search').value||'').trim().toLowerCase();
   const fStatus = document.getElementById('f-status').value;
   const fUrgency = document.getElementById('f-urgency').value;
   const tbody = document.getElementById('tbody');
-
-  if(!q && !fStatus && !fUrgency){
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state">Gõ từ khóa hoặc chọn bộ lọc để tra cứu — không hiện toàn bộ ${allRows.length.toLocaleString()} dòng cùng lúc</div></td></tr>`;
-    return;
-  }
 
   let rows = allRows;
   if(q) rows = rows.filter(r => [r.shipper,r.booking_no,r.cntr_no,r.vessel,r.line,r.pol].some(v=>String(v||'').toLowerCase().includes(q)));
@@ -322,7 +307,7 @@ function renderResults(){
     return;
   }
 
-  const shown = rows.slice(0, MAX_RESULTS);
+  const shown = rows;
   tbody.innerHTML = shown.map(r => `
     <tr class="row-${rowTintClass(r._status)}">
       <td>${r.shipper||'—'}</td>
@@ -337,9 +322,7 @@ function renderResults(){
       <td>${r._urgency?`<span class="badge ${urgencyBadgeClass(r._urgency)}">${r._urgency}</span>`:'—'}</td>
       <td>${r._status?`<span class="badge ${statusBadgeClass(r._status)}">${r._status}</span>`:'—'}</td>
     </tr>
-  `).join('') + (rows.length > MAX_RESULTS
-    ? `<tr><td colspan="11"><div class="empty-state">Khớp ${rows.length.toLocaleString()} dòng — chỉ hiện ${MAX_RESULTS} dòng đầu, thu hẹp tìm kiếm để xem chính xác hơn</div></td></tr>`
-    : '');
+  `).join('');
 }
 
 // Nút "Tải lại": đọc lại dữ liệu sống từ Apps Script (mất vài giây, có báo hiệu
@@ -356,9 +339,6 @@ async function reloadAll(){
   }
   btn.disabled = false;
   btn.innerHTML = '🔄 Tải lại';
-
-  const frame = document.getElementById('sheet-iframe');
-  frame.src = frame.src.split('&_r=')[0] + '&_r=' + Date.now();
 }
 
 function exportExcel(){
