@@ -80,6 +80,13 @@ tr:hover td{background:#f8fafc}
 .empty-state{text-align:center;color:var(--txt3);padding:36px;font-size:13px}
 .toast{position:fixed;bottom:20px;right:20px;background:#0f172a;color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;z-index:100;display:none;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 .toast.err{background:#b91c1c}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:50;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:12px;max-width:460px;width:100%;padding:22px}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.modal-hd h3{font-size:16px;font-weight:700}
+.mclose{background:var(--s3);border:none;color:var(--txt2);cursor:pointer;font-size:16px;width:28px;height:28px;border-radius:8px}
+.modal-ft{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
 .spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
@@ -116,6 +123,7 @@ tr:hover td{background:#f8fafc}
       <option>Quá Hạn</option><option>Gấp</option><option>Khẩn Cấp</option><option>Cần Chú Ý</option><option>Bình Thường</option>
     </select>
     <button class="btn btn-o" onclick="exportExcel()">📥 Xuất Excel</button>
+    <button class="btn btn-o" onclick="openReportModal()">📊 Xuất báo cáo</button>
     <button class="btn btn-p" id="reload-btn" onclick="reloadAll()">🔄 Tải lại</button>
   </div>
 
@@ -139,6 +147,41 @@ tr:hover td{background:#f8fafc}
     </table>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="report-modal">
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>📊 Xuất báo cáo</h3>
+      <button class="mclose" onclick="closeReportModal()">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--txt2);margin-bottom:14px">Chọn loại báo cáo cần xuất ra Excel (tính trên toàn bộ dữ liệu hiện có).</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;cursor:pointer">
+        <input type="radio" name="report-type" value="line" checked onchange="onReportTypeChange()">
+        <span style="font-size:13px"><b>Theo Line</b> — sản lượng, top khách hàng, tỷ lệ lấy vỏ, cơ cấu cont, dự báo</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;cursor:pointer">
+        <input type="radio" name="report-type" value="khach" onchange="onReportTypeChange()">
+        <span style="font-size:13px"><b>Theo khách hàng</b> — sản lượng, tỷ lệ Lạch Huyện, top Line, cơ cấu cont, dự báo</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;cursor:pointer">
+        <input type="radio" name="report-type" value="time" onchange="onReportTypeChange()">
+        <span style="font-size:13px"><b>Theo ngày/tuần/tháng</b> — sản lượng, so sánh kỳ trước, xu hướng</span>
+      </label>
+    </div>
+    <div id="time-granularity-wrap" style="display:none;margin-bottom:16px">
+      <select class="finp" id="time-granularity" style="width:100%">
+        <option value="d">Theo ngày (D)</option>
+        <option value="w">Theo tuần (W)</option>
+        <option value="m" selected>Theo tháng (M)</option>
+      </select>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-o" onclick="closeReportModal()">Hủy</button>
+      <button class="btn btn-p" onclick="doExportReport()">📥 Xuất Excel</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -360,6 +403,185 @@ async function reloadAll(){
   }
   btn.disabled = false;
   btn.innerHTML = '🔄 Tải lại';
+}
+
+// ── PHÂN LOẠI DÙNG CHUNG CHO BÁO CÁO ────────────────────────────────────────
+const LACH_HUYEN_KEYWORDS = ['HICT','TIL','HATECO','HTIT','LẠCH HUYỆN','LACH HUYEN'];
+
+function classifyContType(t){
+  t = (t||'').trim().toUpperCase();
+  if(t.startsWith('20')) return '20';
+  if(t.startsWith('40')) return '40';
+  return 'khac';
+}
+function classifyEmptyPickup(ep){
+  ep = (ep||'').trim().toUpperCase();
+  if(!ep || ep==='-') return null;
+  return ep === 'SITC' ? 'sitc' : 'ngoai';
+}
+function isLachHuyen(pol){
+  pol = (pol||'').trim().toUpperCase();
+  return LACH_HUYEN_KEYWORDS.some(k => pol.includes(k));
+}
+function pct(part, total){ return total ? Math.round((part/total)*1000)/10 : 0; }
+
+// Chuỗi số liệu theo tuần/tháng cho 1 nhóm dòng (đã lọc theo Line/Khách) — dùng
+// để tính TB/tuần, TB/tháng, %đổi so kỳ trước, và dự báo (TB của vài kỳ gần nhất).
+function weeklySeries(rows){
+  const map = new Map();
+  rows.forEach(r=>{ if(r.cntr_no && r.w_week) map.set(r.w_week,(map.get(r.w_week)||0)+1); });
+  const weeks = Array.from(map.keys()).sort((a,b)=>(parseInt(a.replace(/\D/g,''))||0)-(parseInt(b.replace(/\D/g,''))||0));
+  return { keys: weeks, counts: weeks.map(w=>map.get(w)) };
+}
+function monthlySeries(rows){
+  const map = new Map();
+  rows.forEach(r=>{ if(r.cntr_no && r.m_month) map.set(r.m_month,(map.get(r.m_month)||0)+1); });
+  const parse = s=>{ const m=String(s).match(/(\d+).*?(\d{4})/); return m? (+m[2])*100+(+m[1]) : 0; };
+  const months = Array.from(map.keys()).sort((a,b)=>parse(a)-parse(b));
+  return { keys: months, counts: months.map(m=>map.get(m)) };
+}
+function pctChange(counts){
+  if(counts.length < 2) return null;
+  const cur = counts[counts.length-1], prev = counts[counts.length-2];
+  return prev ? Math.round(((cur-prev)/prev)*1000)/10 : null;
+}
+function forecastNext(counts){
+  if(!counts.length) return 0;
+  const n = Math.min(4, counts.length);
+  const recent = counts.slice(-n);
+  return Math.round(recent.reduce((a,b)=>a+b,0)/n);
+}
+function topN(rows, keyFn, n){
+  const map = new Map();
+  rows.forEach(r=>{
+    if(!r.cntr_no) return;
+    const key = keyFn(r) || '(Không rõ)';
+    map.set(key, (map.get(key)||0)+1);
+  });
+  return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,n);
+}
+
+// ── BÁO CÁO THEO LINE ────────────────────────────────────────────────────
+function buildLineReport(){
+  const lines = [...new Set(allRows.map(r=>r.line).filter(Boolean))];
+  const headers = ['Line','Cont','Booking','TB/tuần','TB/tháng','%20\'','%40\'','%Khác','%SITC','%Ngoài SITC','%Đổi tuần trước','%Đổi tháng trước','Dự báo tuần tới'];
+  for(let i=1;i<=5;i++) headers.push(`Top${i}_Tên`,`Top${i}_SL`);
+
+  const data = lines.map(line=>{
+    const rows = allRows.filter(r=>r.line===line);
+    const withCntr = rows.filter(r=>r.cntr_no);
+    const containers = withCntr.length;
+    const bookings = new Set(rows.filter(r=>r.booking_no).map(r=>r.booking_no)).size;
+    const w = weeklySeries(rows), m = monthlySeries(rows);
+    const avgWeek = w.keys.length ? Math.round((containers/w.keys.length)*10)/10 : 0;
+    const avgMonth = m.keys.length ? Math.round((containers/m.keys.length)*10)/10 : 0;
+
+    let c20=0,c40=0,cKhac=0, sitc=0, ngoai=0;
+    withCntr.forEach(r=>{
+      const ct = classifyContType(r.cont_type);
+      if(ct==='20') c20++; else if(ct==='40') c40++; else cKhac++;
+      const ep = classifyEmptyPickup(r.empty_pickup);
+      if(ep==='sitc') sitc++; else if(ep==='ngoai') ngoai++;
+    });
+
+    const top5 = topN(rows, r=>r.shipper, 5);
+    const row = [line, containers, bookings, avgWeek, avgMonth,
+      pct(c20,containers)+'%', pct(c40,containers)+'%', pct(cKhac,containers)+'%',
+      pct(sitc,containers)+'%', pct(ngoai,containers)+'%',
+      pctChange(w.counts)===null?'—':pctChange(w.counts)+'%',
+      pctChange(m.counts)===null?'—':pctChange(m.counts)+'%',
+      forecastNext(w.counts)];
+    for(let i=0;i<5;i++){ row.push(top5[i]?top5[i][0]:'', top5[i]?top5[i][1]:''); }
+    return row;
+  }).sort((a,b)=>b[1]-a[1]);
+
+  return { headers, data };
+}
+
+// ── BÁO CÁO THEO KHÁCH HÀNG ──────────────────────────────────────────────
+function buildKhachReport(){
+  const shippers = [...new Set(allRows.map(r=>r.shipper).filter(Boolean))];
+  const headers = ['Shipper','Cont','Booking','TB/tuần','TB/tháng','%20\'','%40\'','%Khác','%Đổi tuần trước','%Đổi tháng trước','Dự báo tuần tới','%Lạch Huyện','%SITC','%Ngoài SITC'];
+  for(let i=1;i<=5;i++) headers.push(`Top${i}_Line`,`Top${i}_SL`);
+
+  const data = shippers.map(shipper=>{
+    const rows = allRows.filter(r=>r.shipper===shipper);
+    const withCntr = rows.filter(r=>r.cntr_no);
+    const containers = withCntr.length;
+    const bookings = new Set(rows.filter(r=>r.booking_no).map(r=>r.booking_no)).size;
+    const w = weeklySeries(rows), m = monthlySeries(rows);
+    const avgWeek = w.keys.length ? Math.round((containers/w.keys.length)*10)/10 : 0;
+    const avgMonth = m.keys.length ? Math.round((containers/m.keys.length)*10)/10 : 0;
+
+    let c20=0,c40=0,cKhac=0, sitc=0, ngoai=0, lachHuyen=0;
+    withCntr.forEach(r=>{
+      const ct = classifyContType(r.cont_type);
+      if(ct==='20') c20++; else if(ct==='40') c40++; else cKhac++;
+      const ep = classifyEmptyPickup(r.empty_pickup);
+      if(ep==='sitc') sitc++; else if(ep==='ngoai') ngoai++;
+      if(isLachHuyen(r.pol)) lachHuyen++;
+    });
+
+    const top5 = topN(rows, r=>r.line, 5);
+    const row = [shipper, containers, bookings, avgWeek, avgMonth,
+      pct(c20,containers)+'%', pct(c40,containers)+'%', pct(cKhac,containers)+'%',
+      pctChange(w.counts)===null?'—':pctChange(w.counts)+'%',
+      pctChange(m.counts)===null?'—':pctChange(m.counts)+'%',
+      forecastNext(w.counts),
+      pct(lachHuyen,containers)+'%', pct(sitc,containers)+'%', pct(ngoai,containers)+'%'];
+    for(let i=0;i<5;i++){ row.push(top5[i]?top5[i][0]:'', top5[i]?top5[i][1]:''); }
+    return row;
+  }).sort((a,b)=>b[1]-a[1]);
+
+  return { headers, data };
+}
+
+// ── BÁO CÁO THEO NGÀY/TUẦN/THÁNG ─────────────────────────────────────────
+function buildTimeReport(gran){
+  const keyFn = gran==='d' ? (r=>r.d_date?fmtDateVN(r.d_date):null) : gran==='w' ? (r=>r.w_week) : (r=>r.m_month);
+  const sortKeyFn = gran==='d' ? (r=>r.d_date||'') : gran==='w' ? (r=>String(parseInt((r.w_week||'').replace(/\D/g,''))||0).padStart(3,'0')) : (r=>{ const m=String(r.m_month||'').match(/(\d+).*?(\d{4})/); return m? (+m[2])*100+(+m[1]) : 0; });
+
+  const map = new Map(); // key -> {containers, bookingsSet, sortVal}
+  allRows.forEach(r=>{
+    const key = keyFn(r); if(!key) return;
+    if(!map.has(key)) map.set(key, {containers:0, bookingsSet:new Set(), sortVal: sortKeyFn(r)});
+    const g = map.get(key);
+    if(r.cntr_no) g.containers++;
+    if(r.booking_no) g.bookingsSet.add(r.booking_no);
+  });
+  const entries = Array.from(map.entries()).sort((a,b)=> a[1].sortVal > b[1].sortVal ? 1 : -1);
+
+  const headers = ['Kỳ','Cont','Booking','%Đổi so kỳ trước','Xu hướng'];
+  const data = entries.map(([key,g],i)=>{
+    const prev = i>0 ? entries[i-1][1].containers : null;
+    const change = (prev!==null && prev!==0) ? Math.round(((g.containers-prev)/prev)*1000)/10 : null;
+    const trend = prev===null ? '—' : g.containers>prev ? 'Tăng' : g.containers<prev ? 'Giảm' : 'Ổn định';
+    return [key, g.containers, g.bookingsSet.size, change===null?'—':change+'%', trend];
+  });
+  return { headers, data };
+}
+
+// ── MODAL & XUẤT FILE ────────────────────────────────────────────────────
+function openReportModal(){ document.getElementById('report-modal').classList.add('show'); }
+function closeReportModal(){ document.getElementById('report-modal').classList.remove('show'); }
+function onReportTypeChange(){
+  const type = document.querySelector('input[name="report-type"]:checked').value;
+  document.getElementById('time-granularity-wrap').style.display = (type==='time') ? 'block' : 'none';
+}
+function doExportReport(){
+  const type = document.querySelector('input[name="report-type"]:checked').value;
+  let report, filename;
+  if(type==='line'){ report = buildLineReport(); filename = 'BaoCao_TheoLine'; }
+  else if(type==='khach'){ report = buildKhachReport(); filename = 'BaoCao_TheoKhachHang'; }
+  else { const gran = document.getElementById('time-granularity').value; report = buildTimeReport(gran); filename = 'BaoCao_TheoThoiGian_'+gran.toUpperCase(); }
+
+  if(!report.data.length){ notif('Không có dữ liệu để xuất', 'err'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([report.headers, ...report.data]);
+  XLSX.utils.book_append_sheet(wb, ws, 'BaoCao');
+  XLSX.writeFile(wb, `${filename}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  closeReportModal();
+  notif('✅ Đã xuất báo cáo');
 }
 
 function exportExcel(){
