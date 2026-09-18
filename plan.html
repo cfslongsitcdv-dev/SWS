@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WAREHOUSE PLAN - KẾ HOẠCH KHO CFS | SITC Đình Vũ CFS</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
 :root{
   --bg:#f0f4f8;--s1:#fff;--s2:#f8fafc;--s3:#e2e8f0;
@@ -123,7 +123,7 @@ tr:hover td{background:#f8fafc}
       <option>Quá Hạn</option><option>Gấp</option><option>Khẩn Cấp</option><option>Cần Chú Ý</option><option>Bình Thường</option>
     </select>
     <button class="btn btn-o" onclick="exportExcel()">📥 Xuất Excel</button>
-    <button class="btn btn-o" onclick="openReportModal()">📊 Xuất báo cáo</button>
+    <button class="btn btn-o" id="report-btn" onclick="openReportModal()">📊 Xuất báo cáo</button>
     <button class="btn btn-p" id="reload-btn" onclick="reloadAll()">🔄 Tải lại</button>
   </div>
 
@@ -158,24 +158,17 @@ tr:hover td{background:#f8fafc}
     <p style="font-size:13px;color:var(--txt2);margin-bottom:14px">Chọn loại báo cáo cần xuất ra Excel (tính trên toàn bộ dữ liệu hiện có).</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;cursor:pointer">
-        <input type="radio" name="report-type" value="line" checked onchange="onReportTypeChange()">
-        <span style="font-size:13px"><b>Theo Line</b> — sản lượng, top khách hàng, tỷ lệ lấy vỏ, cơ cấu cont, dự báo</span>
+        <input type="radio" name="report-type" value="line" checked>
+        <span style="font-size:13px"><b>Theo Line</b> — sản lượng, Top 5 khách hàng, tỷ lệ lấy vỏ, G20/G40, sản lượng theo tuần &amp; tháng, dự báo</span>
       </label>
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;cursor:pointer">
-        <input type="radio" name="report-type" value="khach" onchange="onReportTypeChange()">
-        <span style="font-size:13px"><b>Theo khách hàng</b> — sản lượng, tỷ lệ Lạch Huyện, top Line, cơ cấu cont, dự báo</span>
+        <input type="radio" name="report-type" value="khach">
+        <span style="font-size:13px"><b>Theo khách hàng</b> — sản lượng, tỷ lệ Lạch Huyện, Top 5 Line, G20/G40, sản lượng theo tuần &amp; tháng, dự báo</span>
       </label>
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;cursor:pointer">
-        <input type="radio" name="report-type" value="time" onchange="onReportTypeChange()">
-        <span style="font-size:13px"><b>Theo ngày/tuần/tháng</b> — sản lượng, so sánh kỳ trước, xu hướng</span>
+        <input type="radio" name="report-type" value="time">
+        <span style="font-size:13px"><b>Theo ngày/tuần/tháng</b> — chi tiết đủ cả 3 mức, so sánh kỳ trước, nơi hạ/lấy vỏ chủ yếu, khách lớn nhất</span>
       </label>
-    </div>
-    <div id="time-granularity-wrap" style="display:none;margin-bottom:16px">
-      <select class="finp" id="time-granularity" style="width:100%">
-        <option value="d">Theo ngày (D)</option>
-        <option value="w">Theo tuần (W)</option>
-        <option value="m" selected>Theo tháng (M)</option>
-      </select>
     </div>
     <div class="modal-ft">
       <button class="btn btn-o" onclick="closeReportModal()">Hủy</button>
@@ -427,15 +420,33 @@ function pct(part, total){ return total ? Math.round((part/total)*1000)/10 : 0; 
 
 // Chuỗi số liệu theo tuần/tháng cho 1 nhóm dòng (đã lọc theo Line/Khách) — dùng
 // để tính TB/tuần, TB/tháng, %đổi so kỳ trước, và dự báo (TB của vài kỳ gần nhất).
+// Tính tuần TRỰC TIẾP từ cột D (ngày thực tế) theo chuẩn ISO — không phụ thuộc
+// cột W có sẵn trong Sheet (cột này có thể bị thiếu ở nhiều dòng, gây báo cáo
+// theo tuần bị trống/sai). Cutoff Date dùng làm phương án dự phòng nếu D trống.
+function getISOWeek(dateStr){
+  if(!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if(isNaN(d)) return null;
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getDay() + 6) % 7; // Mon=0..Sun=6
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if(target.getDay() !== 4) target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+  const weekNum = 1 + Math.ceil((firstThursday - target) / 604800000);
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2,'0')}`;
+}
+function weekOf(r){ return getISOWeek(r.d_date || r.cutoff_date); }
+
 function weeklySeries(rows){
   const map = new Map();
-  rows.forEach(r=>{ if(r.cntr_no && r.w_week) map.set(r.w_week,(map.get(r.w_week)||0)+1); });
-  const weeks = Array.from(map.keys()).sort((a,b)=>(parseInt(a.replace(/\D/g,''))||0)-(parseInt(b.replace(/\D/g,''))||0));
+  rows.forEach(r=>{ const wk = weekOf(r); if(r.cntr_no && wk) map.set(wk,(map.get(wk)||0)+1); });
+  const weeks = Array.from(map.keys()).sort();
   return { keys: weeks, counts: weeks.map(w=>map.get(w)) };
 }
 function monthlySeries(rows){
   const map = new Map();
-  rows.forEach(r=>{ if(r.cntr_no && r.m_month) map.set(r.m_month,(map.get(r.m_month)||0)+1); });
+  rows.forEach(r=>{ if(r.cntr_no && r.m_month) map.set(String(r.m_month),(map.get(String(r.m_month))||0)+1); });
   const parse = s=>{ const m=String(s).match(/(\d+).*?(\d{4})/); return m? (+m[2])*100+(+m[1]) : 0; };
   const months = Array.from(map.keys()).sort((a,b)=>parse(a)-parse(b));
   return { keys: months, counts: months.map(m=>map.get(m)) };
@@ -461,141 +472,400 @@ function topN(rows, keyFn, n){
   return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,n);
 }
 
-// ── BÁO CÁO THEO LINE ────────────────────────────────────────────────────
-function buildLineReport(){
-  const lines = [...new Set(allRows.map(r=>r.line).filter(Boolean))];
-  const headers = ['Line','Cont','Booking','TB/tuần','TB/tháng','%20\'','%40\'','%Khác','%SITC','%Ngoài SITC','%Đổi tuần trước','%Đổi tháng trước','Dự báo tuần tới'];
-  for(let i=1;i<=5;i++) headers.push(`Top${i}_Tên`,`Top${i}_SL`);
-
-  const data = lines.map(line=>{
-    const rows = allRows.filter(r=>r.line===line);
-    const withCntr = rows.filter(r=>r.cntr_no);
-    const containers = withCntr.length;
-    const bookings = new Set(rows.filter(r=>r.booking_no).map(r=>r.booking_no)).size;
-    const w = weeklySeries(rows), m = monthlySeries(rows);
-    const avgWeek = w.keys.length ? Math.round((containers/w.keys.length)*10)/10 : 0;
-    const avgMonth = m.keys.length ? Math.round((containers/m.keys.length)*10)/10 : 0;
-
-    let c20=0,c40=0,cKhac=0, sitc=0, ngoai=0;
-    withCntr.forEach(r=>{
-      const ct = classifyContType(r.cont_type);
-      if(ct==='20') c20++; else if(ct==='40') c40++; else cKhac++;
-      const ep = classifyEmptyPickup(r.empty_pickup);
-      if(ep==='sitc') sitc++; else if(ep==='ngoai') ngoai++;
-    });
-
-    const top5 = topN(rows, r=>r.shipper, 5);
-    const row = [line, containers, bookings, avgWeek, avgMonth,
-      pct(c20,containers)+'%', pct(c40,containers)+'%', pct(cKhac,containers)+'%',
-      pct(sitc,containers)+'%', pct(ngoai,containers)+'%',
-      pctChange(w.counts)===null?'—':pctChange(w.counts)+'%',
-      pctChange(m.counts)===null?'—':pctChange(m.counts)+'%',
-      forecastNext(w.counts)];
-    for(let i=0;i<5;i++){ row.push(top5[i]?top5[i][0]:'', top5[i]?top5[i][1]:''); }
-    return row;
-  }).sort((a,b)=>b[1]-a[1]);
-
-  return { headers, data };
+// ── HỒI QUY TUYẾN TÍNH (dự báo) & TIỆN ÍCH DÙNG CHUNG ───────────────────────
+function linearRegression(ys){
+  const n = ys.length;
+  if(n < 2) return {slope:0, intercept: ys[0]||0};
+  const xs = ys.map((_,i)=>i);
+  const sumX=xs.reduce((a,b)=>a+b,0), sumY=ys.reduce((a,b)=>a+b,0);
+  const sumXY=xs.reduce((a,x,i)=>a+x*ys[i],0), sumXX=xs.reduce((a,x)=>a+x*x,0);
+  const denom = (n*sumXX - sumX*sumX) || 1;
+  const slope = (n*sumXY - sumX*sumY) / denom;
+  const intercept = (sumY - slope*sumX) / n;
+  return {slope, intercept};
 }
-
-// ── BÁO CÁO THEO KHÁCH HÀNG ──────────────────────────────────────────────
-function buildKhachReport(){
-  const shippers = [...new Set(allRows.map(r=>r.shipper).filter(Boolean))];
-  const headers = ['Shipper','Cont','Booking','TB/tuần','TB/tháng','%20\'','%40\'','%Khác','%Đổi tuần trước','%Đổi tháng trước','Dự báo tuần tới','%Lạch Huyện','%SITC','%Ngoài SITC'];
-  for(let i=1;i<=5;i++) headers.push(`Top${i}_Line`,`Top${i}_SL`);
-
-  const data = shippers.map(shipper=>{
-    const rows = allRows.filter(r=>r.shipper===shipper);
-    const withCntr = rows.filter(r=>r.cntr_no);
-    const containers = withCntr.length;
-    const bookings = new Set(rows.filter(r=>r.booking_no).map(r=>r.booking_no)).size;
-    const w = weeklySeries(rows), m = monthlySeries(rows);
-    const avgWeek = w.keys.length ? Math.round((containers/w.keys.length)*10)/10 : 0;
-    const avgMonth = m.keys.length ? Math.round((containers/m.keys.length)*10)/10 : 0;
-
-    let c20=0,c40=0,cKhac=0, sitc=0, ngoai=0, lachHuyen=0;
-    withCntr.forEach(r=>{
-      const ct = classifyContType(r.cont_type);
-      if(ct==='20') c20++; else if(ct==='40') c40++; else cKhac++;
-      const ep = classifyEmptyPickup(r.empty_pickup);
-      if(ep==='sitc') sitc++; else if(ep==='ngoai') ngoai++;
-      if(isLachHuyen(r.pol)) lachHuyen++;
-    });
-
-    const top5 = topN(rows, r=>r.line, 5);
-    const row = [shipper, containers, bookings, avgWeek, avgMonth,
-      pct(c20,containers)+'%', pct(c40,containers)+'%', pct(cKhac,containers)+'%',
-      pctChange(w.counts)===null?'—':pctChange(w.counts)+'%',
-      pctChange(m.counts)===null?'—':pctChange(m.counts)+'%',
-      forecastNext(w.counts),
-      pct(lachHuyen,containers)+'%', pct(sitc,containers)+'%', pct(ngoai,containers)+'%'];
-    for(let i=0;i<5;i++){ row.push(top5[i]?top5[i][0]:'', top5[i]?top5[i][1]:''); }
-    return row;
-  }).sort((a,b)=>b[1]-a[1]);
-
-  return { headers, data };
+function forecastLinear(ys, stepsAhead){
+  const {slope, intercept} = linearRegression(ys);
+  const n = ys.length;
+  const preds = [];
+  for(let i=1;i<=stepsAhead;i++) preds.push(Math.max(0, Math.round(slope*(n-1+i)+intercept)));
+  return preds;
 }
+function getLatestDataDate(){
+  const dates = allRows.map(r=>r.d_date).filter(Boolean).sort();
+  return dates.length ? dates[dates.length-1] : null;
+}
+function modeWithCount(rows, keyFn){
+  const map = new Map();
+  rows.forEach(r=>{ const k=keyFn(r); if(!k) return; map.set(k,(map.get(k)||0)+1); });
+  let best=null, bestN=0;
+  map.forEach((n,k)=>{ if(n>bestN){best=k;bestN=n;} });
+  return [best||'—', bestN];
+}
+function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); } // month: 1-12
 
-// ── BÁO CÁO THEO NGÀY/TUẦN/THÁNG ─────────────────────────────────────────
-function buildTimeReport(gran){
-  const keyFn = gran==='d' ? (r=>r.d_date?fmtDateVN(r.d_date):null) : gran==='w' ? (r=>r.w_week) : (r=>r.m_month);
-  const sortKeyFn = gran==='d' ? (r=>r.d_date||'') : gran==='w' ? (r=>String(parseInt((r.w_week||'').replace(/\D/g,''))||0).padStart(3,'0')) : (r=>{ const m=String(r.m_month||'').match(/(\d+).*?(\d{4})/); return m? (+m[2])*100+(+m[1]) : 0; });
+// ── BÁO CÁO THEO NGÀY/TUẦN/THÁNG — CHI TIẾT ĐẦY ĐỦ (khớp mẫu 03_ThoiGian) ──
+function buildPeriodDetail(gran){
+  const keyFn = gran==='d' ? (r=>r.d_date) : gran==='w' ? weekOf : (r=>r.m_month);
+  const sortKeyFn = gran==='d' ? (r=>r.d_date||'') : gran==='w' ? weekOf : (r=>{ const m=String(r.m_month||'').match(/(\d+).*?(\d{4})/); return m? (+m[2])*100+(+m[1]) : 0; });
 
-  const map = new Map(); // key -> {containers, bookingsSet, sortVal}
+  const map = new Map();
   allRows.forEach(r=>{
     const key = keyFn(r); if(!key) return;
-    if(!map.has(key)) map.set(key, {containers:0, bookingsSet:new Set(), sortVal: sortKeyFn(r)});
-    const g = map.get(key);
-    if(r.cntr_no) g.containers++;
-    if(r.booking_no) g.bookingsSet.add(r.booking_no);
+    if(!map.has(key)) map.set(key, {rows:[], sortVal: sortKeyFn(r)});
+    map.get(key).rows.push(r);
   });
   const entries = Array.from(map.entries()).sort((a,b)=> a[1].sortVal > b[1].sortVal ? 1 : -1);
 
-  const headers = ['Kỳ','Cont','Booking','%Đổi so kỳ trước','Xu hướng'];
-  const data = entries.map(([key,g],i)=>{
-    const prev = i>0 ? entries[i-1][1].containers : null;
-    const change = (prev!==null && prev!==0) ? Math.round(((g.containers-prev)/prev)*1000)/10 : null;
-    const trend = prev===null ? '—' : g.containers>prev ? 'Tăng' : g.containers<prev ? 'Giảm' : 'Ổn định';
-    return [key, g.containers, g.bookingsSet.size, change===null?'—':change+'%', trend];
+  const headers = ['Kỳ','Sản lượng','Kỳ trước','%thay đổi','Hạ chủ yếu','SL hạ chủ yếu','Lấy vỏ chủ yếu','SL lấy vỏ chủ yếu','Khách nhiều nhất','SL khách nhiều nhất','G20 %','G40 %','Lấy vỏ SITC %'];
+  let prevCount = null;
+  const data = entries.map(([key,g])=>{
+    const withCntr = g.rows.filter(r=>r.cntr_no);
+    const containers = withCntr.length;
+    const change = (prevCount!==null && prevCount!==0) ? Math.round(((containers-prevCount)/prevCount)*1000)/10 : null;
+    const [pol, polN] = modeWithCount(withCntr, r=>r.pol);
+    const [ep, epN] = modeWithCount(withCntr, r=>r.empty_pickup);
+    const [sh, shN] = modeWithCount(withCntr, r=>r.shipper);
+    let c20=0,c40=0,sitc=0;
+    withCntr.forEach(r=>{ const ct=classifyContType(r.cont_type); if(ct==='20')c20++; else if(ct==='40')c40++; if(classifyEmptyPickup(r.empty_pickup)==='sitc')sitc++; });
+    const dKey = gran==='d' ? fmtDateVN(key) : key;
+    const row = [dKey, containers, prevCount===null?'—':prevCount, change===null?'—':change+'%',
+      pol, polN, ep, epN, sh, shN, pct(c20,containers)+'%', pct(c40,containers)+'%', pct(sitc,containers)+'%'];
+    prevCount = containers;
+    return row;
   });
   return { headers, data };
 }
 
-// ── MODAL & XUẤT FILE ────────────────────────────────────────────────────
+// ── BÁO CÁO THEO LINE — ĐẦY ĐỦ (khớp mẫu 01_Line) ───────────────────────────
+function buildLineReportFull(){
+  const lines = [...new Set(allRows.map(r=>r.line).filter(Boolean))];
+  const totalCont = allRows.filter(r=>r.cntr_no).length;
+  const latestDate = getLatestDataDate();
+  const curWeek = latestDate ? weekOf({d_date:latestDate}) : null;
+
+  const mainHeaders = ['LINE','Sản lượng','Tỷ trọng %','TB/tuần','TB/tháng','TB/ngày có phát sinh','Lấy vỏ SITC %','Lấy vỏ ngoài SITC %','Lấy vỏ KXĐ %','G20 %','G40 %','Dự báo tuần tới'];
+  const top5Headers = ['LINE','SHIPPER','Sản lượng','Rank'];
+  const mainData = [], top5Data = [];
+  const weekSet = new Set(), monthSet = new Set();
+  const weeklyByLine = {}, monthlyByLine = {};
+
+  lines.forEach(line=>{
+    const rows = allRows.filter(r=>r.line===line);
+    const withCntr = rows.filter(r=>r.cntr_no);
+    const containers = withCntr.length;
+    const w = weeklySeries(rows), m = monthlySeries(rows);
+    const distinctDays = new Set(withCntr.map(r=>r.d_date).filter(Boolean)).size;
+    const avgWeek = w.keys.length ? containers/w.keys.length : 0;
+    const avgMonth = m.keys.length ? containers/m.keys.length : 0;
+    const avgActiveDay = distinctDays ? containers/distinctDays : 0;
+
+    let sitc=0, ngoai=0, kxd=0, c20=0, c40=0;
+    withCntr.forEach(r=>{
+      const ep = classifyEmptyPickup(r.empty_pickup);
+      if(ep==='sitc') sitc++; else if(ep==='ngoai') ngoai++; else kxd++;
+      const ct = classifyContType(r.cont_type);
+      if(ct==='20') c20++; else if(ct==='40') c40++;
+    });
+
+    // Dự báo tuần tới: hồi quy tuyến tính trên các tuần ĐÃ HOÀN TẤT (loại tuần hiện tại)
+    const completedWeeks = curWeek ? w.counts.slice(0, w.keys.indexOf(curWeek)===-1 ? w.counts.length : w.keys.indexOf(curWeek)) : w.counts;
+    const forecast = completedWeeks.length ? forecastLinear(completedWeeks,1)[0] : 0;
+
+    mainData.push([line, containers, pct(containers,totalCont), Math.round(avgWeek*10)/10, Math.round(avgMonth*10)/10, Math.round(avgActiveDay*10)/10,
+      pct(sitc,containers)+'%', pct(ngoai,containers)+'%', pct(kxd,containers)+'%', pct(c20,containers)+'%', pct(c40,containers)+'%', forecast]);
+
+    topN(rows, r=>r.shipper, 5).forEach(([name,cnt],i)=> top5Data.push([line,name,cnt,i+1]));
+
+    w.keys.forEach(k=>weekSet.add(k)); m.keys.forEach(k=>monthSet.add(k));
+    weeklyByLine[line] = Object.fromEntries(w.keys.map((k,i)=>[k,w.counts[i]]));
+    monthlyByLine[line] = Object.fromEntries(m.keys.map((k,i)=>[k,m.counts[i]]));
+  });
+  mainData.sort((a,b)=>b[1]-a[1]);
+
+  const weeks = Array.from(weekSet).sort(), months = Array.from(monthSet).sort();
+  const weekPivotHeaders = ['Tuần', ...lines];
+  const weekPivotData = weeks.map(w=>[w, ...lines.map(l=>weeklyByLine[l][w]||0)]);
+  const monthPivotHeaders = ['Tháng', ...lines];
+  const monthPivotData = months.map(m=>[m, ...lines.map(l=>monthlyByLine[l][m]||0)]);
+
+  return { mainHeaders, mainData, top5Headers, top5Data, weekPivotHeaders, weekPivotData, monthPivotHeaders, monthPivotData };
+}
+
+// ── BÁO CÁO THEO KHÁCH HÀNG — ĐẦY ĐỦ (khớp mẫu 02_KhachHang) ────────────────
+function buildKhachReportFull(){
+  const shippers = [...new Set(allRows.map(r=>r.shipper).filter(Boolean))];
+  const totalCont = allRows.filter(r=>r.cntr_no).length;
+  const latestDate = getLatestDataDate();
+  const curWeek = latestDate ? weekOf({d_date:latestDate}) : null;
+
+  const mainHeaders = ['SHIPPER','Sản lượng','Tỷ trọng %','TB/tuần','TB/tháng','Lạch Huyện %','Lấy vỏ SITC %','Lấy vỏ ngoài SITC %','Lấy vỏ KXĐ %','G20 %','G40 %','Dự báo tuần tới'];
+  const top5Headers = ['SHIPPER','LINE','Sản lượng','Rank'];
+  const mainData = [], top5Data = [];
+  const weekSet = new Set(), monthSet = new Set();
+  const weeklyByShip = {}, monthlyByShip = {};
+
+  shippers.forEach(shipper=>{
+    const rows = allRows.filter(r=>r.shipper===shipper);
+    const withCntr = rows.filter(r=>r.cntr_no);
+    const containers = withCntr.length;
+    const w = weeklySeries(rows), m = monthlySeries(rows);
+    const avgWeek = w.keys.length ? containers/w.keys.length : 0;
+    const avgMonth = m.keys.length ? containers/m.keys.length : 0;
+
+    let sitc=0, ngoai=0, kxd=0, c20=0, c40=0, lach=0;
+    withCntr.forEach(r=>{
+      const ep = classifyEmptyPickup(r.empty_pickup);
+      if(ep==='sitc') sitc++; else if(ep==='ngoai') ngoai++; else kxd++;
+      const ct = classifyContType(r.cont_type);
+      if(ct==='20') c20++; else if(ct==='40') c40++;
+      if(isLachHuyen(r.pol)) lach++;
+    });
+
+    const completedWeeks = curWeek ? w.counts.slice(0, w.keys.indexOf(curWeek)===-1 ? w.counts.length : w.keys.indexOf(curWeek)) : w.counts;
+    const forecast = completedWeeks.length ? forecastLinear(completedWeeks,1)[0] : 0;
+
+    mainData.push([shipper, containers, pct(containers,totalCont), Math.round(avgWeek*10)/10, Math.round(avgMonth*10)/10,
+      pct(lach,containers)+'%', pct(sitc,containers)+'%', pct(ngoai,containers)+'%', pct(kxd,containers)+'%', pct(c20,containers)+'%', pct(c40,containers)+'%', forecast]);
+
+    topN(rows, r=>r.line, 5).forEach(([name,cnt],i)=> top5Data.push([shipper,name,cnt,i+1]));
+
+    w.keys.forEach(k=>weekSet.add(k)); m.keys.forEach(k=>monthSet.add(k));
+    weeklyByShip[shipper] = Object.fromEntries(w.keys.map((k,i)=>[k,w.counts[i]]));
+    monthlyByShip[shipper] = Object.fromEntries(m.keys.map((k,i)=>[k,m.counts[i]]));
+  });
+  mainData.sort((a,b)=>b[1]-a[1]);
+
+  const weeks = Array.from(weekSet).sort(), months = Array.from(monthSet).sort();
+  const weekPivotHeaders = ['Tuần', ...shippers];
+  const weekPivotData = weeks.map(w=>[w, ...shippers.map(s=>weeklyByShip[s][w]||0)]);
+  const monthPivotHeaders = ['Tháng', ...shippers];
+  const monthPivotData = months.map(m=>[m, ...shippers.map(s=>monthlyByShip[s][m]||0)]);
+
+  return { mainHeaders, mainData, top5Headers, top5Data, weekPivotHeaders, weekPivotData, monthPivotHeaders, monthPivotData };
+}
+
+// ── DASHBOARD TỔNG HỢP ───────────────────────────────────────────────────
+function buildDashboardData(){
+  const withCntr = allRows.filter(r=>r.cntr_no);
+  const total = withCntr.length;
+  const totalRows = allRows.length;
+  const withD = allRows.filter(r=>r.d_date).length;
+  const done = allRows.filter(r=>r._status==='Hoàn thành').length;
+  const cancel = allRows.filter(r=>r._status==='Hủy').length;
+  const lines = new Set(allRows.map(r=>r.line).filter(Boolean)).size;
+  const shippers = new Set(allRows.map(r=>r.shipper).filter(Boolean)).size;
+
+  const overall = weeklySeries(allRows);
+  const avgWeek = overall.keys.length ? Math.round((total/overall.keys.length)*10)/10 : 0;
+  const distinctDays = new Set(withCntr.map(r=>r.d_date).filter(Boolean)).size;
+  const avgDay = distinctDays ? Math.round((total/distinctDays)*10)/10 : 0;
+
+  const topLine = topN(allRows, r=>r.line, 1)[0] || ['—',0];
+  const topShipper = topN(allRows, r=>r.shipper, 1)[0] || ['—',0];
+  let c20=0,c40=0,sitc=0,ngoai=0,lach=0;
+  withCntr.forEach(r=>{
+    const ct=classifyContType(r.cont_type); if(ct==='20')c20++; else if(ct==='40')c40++;
+    const ep=classifyEmptyPickup(r.empty_pickup); if(ep==='sitc')sitc++; else if(ep==='ngoai')ngoai++;
+    if(isLachHuyen(r.pol)) lach++;
+  });
+
+  const latestDate = getLatestDataDate();
+  const curWeek = latestDate ? weekOf({d_date:latestDate}) : null;
+  const completedWeeks = curWeek ? overall.counts.slice(0, overall.keys.indexOf(curWeek)===-1 ? overall.counts.length : overall.keys.indexOf(curWeek)) : overall.counts;
+  const weekForecast = forecastLinear(completedWeeks, 4);
+
+  // Ước tính tháng hiện tại theo run-rate + dự báo tháng kế tiếp theo xu hướng tuyến tính
+  let monthForecastRows = [];
+  if(latestDate){
+    const [y,mo] = latestDate.split('-').map(Number);
+    const dim = daysInMonth(y,mo);
+    const curMonthKey = allRows.find(r=>r.d_date===latestDate)?.m_month || `${mo}/${y}`;
+    const monthSeries = monthlySeries(allRows);
+    const curIdx = monthSeries.keys.length-1; // tháng cuối cùng có dữ liệu = tháng hiện tại (chưa hoàn tất)
+    const daysElapsed = new Date(latestDate+'T00:00:00').getDate();
+    const curMonthActual = monthSeries.counts[curIdx] || 0;
+    const runRateEstimate = daysElapsed ? Math.round(curMonthActual / daysElapsed * dim) : curMonthActual;
+    const completedMonths = monthSeries.counts.slice(0, curIdx);
+    const seriesForNext = [...completedMonths, runRateEstimate];
+    const nextMonthForecast = forecastLinear(seriesForNext, 1)[0];
+    monthForecastRows = [
+      [`Ước tính tháng ${monthSeries.keys[curIdx]}`, runRateEstimate, 'Run-rate theo số ngày đã phát sinh trong tháng'],
+      ['Dự báo tháng kế tiếp', nextMonthForecast, 'Xu hướng tuyến tính sau khi ước tính tháng hiện tại'],
+    ];
+  }
+
+  return {
+    totalRows, withD, done, cancel, lines, shippers, avgWeek, avgDay,
+    topLine, topShipper, c20, c40, sitc, ngoai, lach, total,
+    weekForecast: (curWeek ? overall.keys.slice(overall.keys.indexOf(curWeek)) : []).length,
+    weekForecastVals: weekForecast, curWeek, latestDate, monthForecastRows
+  };
+}
+// ── XUẤT EXCEL CÓ ĐỊNH DẠNG (tiêu đề đậm màu, viền, cố định dòng đầu, bộ lọc,
+// tô màu xanh/đỏ cho cột tăng/giảm) — dùng ExcelJS vì SheetJS bản miễn phí
+// không hỗ trợ định dạng.
+async function downloadWorkbook(wb, filename){
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function buildStyledSheet(wb, sheetName, headers, data){
+  const ws = wb.addWorksheet(sheetName);
+  ws.addRow(headers);
+  ws.getRow(1).eachCell(cell=>{
+    cell.font = {bold:true, color:{argb:'FFFFFFFF'}};
+    cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FF0F172A'}};
+    cell.alignment = {vertical:'middle', horizontal:'center'};
+  });
+  ws.views = [{state:'frozen', ySplit:1}];
+  ws.autoFilter = { from:{row:1,column:1}, to:{row:1,column:headers.length} };
+
+  data.forEach((row,i)=>{
+    const r = ws.addRow(row);
+    if(i%2===1) r.eachCell(c=>{ c.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFF8FAFC'}}; });
+    r.eachCell((cell, colNum)=>{
+      const header = headers[colNum-1];
+      const val = String(cell.value ?? '');
+      if(header && (header.startsWith('%Đổi') || header==='Xu hướng')){
+        if(val.startsWith('-') || val==='Giảm') cell.font = {color:{argb:'FFB91C1C'}};
+        else if(val==='Tăng' || (val.endsWith('%') && val!=='0%' && val!=='—')) cell.font = {color:{argb:'FF15803D'}};
+      }
+      cell.border = {bottom:{style:'thin', color:{argb:'FFF1F5F9'}}};
+      cell.alignment = {vertical:'middle'};
+    });
+  });
+
+  headers.forEach((h,i)=>{ ws.getColumn(i+1).width = Math.max(10, Math.min(28, h.length+4)); });
+  return ws;
+}
+
+// ── GHÉP NHIỀU BẢNG VÀO 1 SHEET (tiêu đề mục + bảng, nối tiếp nhau) ─────────
+function sectionTitle(ws, row, text, span){
+  const cell = ws.getCell(row,1);
+  cell.value = text;
+  cell.font = {bold:true, size:12};
+  if(span>1) ws.mergeCells(row,1,row,span);
+  return row+2;
+}
+function appendTable(ws, startRow, headers, data){
+  const headerRow = ws.getRow(startRow);
+  headers.forEach((h,i)=>{ headerRow.getCell(i+1).value = h; });
+  headerRow.eachCell(cell=>{
+    cell.font = {bold:true, color:{argb:'FFFFFFFF'}};
+    cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FF0F172A'}};
+    cell.alignment = {vertical:'middle', horizontal:'center'};
+  });
+  data.forEach((rowVals,i)=>{
+    const r = ws.getRow(startRow+1+i);
+    rowVals.forEach((v,c)=>{ r.getCell(c+1).value = v; });
+    if(i%2===1) r.eachCell(cell=>{ cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFF8FAFC'}}; });
+    r.eachCell((cell,colNum)=>{
+      const header = headers[colNum-1];
+      const val = String(cell.value ?? '');
+      if(header && (header.includes('%thay đổi') || header==='Xu hướng')){
+        if(val.startsWith('-') || val==='Giảm') cell.font = {color:{argb:'FFB91C1C'}};
+        else if(val==='Tăng' || (val.endsWith('%') && val!=='0%' && val!=='—')) cell.font = {color:{argb:'FF15803D'}};
+      }
+      cell.border = {bottom:{style:'thin', color:{argb:'FFF1F5F9'}}};
+    });
+  });
+  headers.forEach((h,i)=>{
+    const col = ws.getColumn(i+1);
+    col.width = Math.max(col.width||10, Math.min(26, h.length+4));
+  });
+  return startRow + data.length + 3;
+}
+function setSheetFont(ws){ ws.eachRow(row=>row.eachCell(cell=>{ cell.font = {...(cell.font||{}), name:'Times New Roman'}; })); }
+
+// ── XUẤT BÁO CÁO TỔNG HỢP — 1 FILE, NHIỀU SHEET ─────────────────────────────
 function openReportModal(){ document.getElementById('report-modal').classList.add('show'); }
 function closeReportModal(){ document.getElementById('report-modal').classList.remove('show'); }
-function onReportTypeChange(){
-  const type = document.querySelector('input[name="report-type"]:checked').value;
-  document.getElementById('time-granularity-wrap').style.display = (type==='time') ? 'block' : 'none';
-}
-function doExportReport(){
-  const type = document.querySelector('input[name="report-type"]:checked').value;
-  let report, filename;
-  if(type==='line'){ report = buildLineReport(); filename = 'BaoCao_TheoLine'; }
-  else if(type==='khach'){ report = buildKhachReport(); filename = 'BaoCao_TheoKhachHang'; }
-  else { const gran = document.getElementById('time-granularity').value; report = buildTimeReport(gran); filename = 'BaoCao_TheoThoiGian_'+gran.toUpperCase(); }
 
-  if(!report.data.length){ notif('Không có dữ liệu để xuất', 'err'); return; }
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([report.headers, ...report.data]);
-  XLSX.utils.book_append_sheet(wb, ws, 'BaoCao');
-  XLSX.writeFile(wb, `${filename}_${new Date().toISOString().slice(0,10)}.xlsx`);
-  closeReportModal();
-  notif('✅ Đã xuất báo cáo');
+async function exportLineReport(wb){
+  const lineRep = buildLineReportFull();
+  const wsL = wb.addWorksheet('01_Line');
+  wsL.getCell(1,1).value = 'BÁO CÁO THEO LINE'; wsL.getCell(1,1).font = {bold:true, size:14};
+  wsL.getCell(2,1).value = 'Sản lượng, cơ cấu khách hàng, G20/G40, lấy vỏ SITC/ngoài SITC, biến động và dự báo.';
+  let row = 4;
+  row = appendTable(wsL, row, lineRep.mainHeaders, lineRep.mainData);
+  row = sectionTitle(wsL, row, 'TOP 5 KHÁCH HÀNG THEO TỪNG LINE', 4);
+  row = appendTable(wsL, row, lineRep.top5Headers, lineRep.top5Data);
+  row = sectionTitle(wsL, row, 'SẢN LƯỢNG LINE THEO TUẦN', lineRep.weekPivotHeaders.length);
+  row = appendTable(wsL, row, lineRep.weekPivotHeaders, lineRep.weekPivotData);
+  row = sectionTitle(wsL, row, 'SẢN LƯỢNG LINE THEO THÁNG', lineRep.monthPivotHeaders.length);
+  row = appendTable(wsL, row, lineRep.monthPivotHeaders, lineRep.monthPivotData);
+  return wsL;
 }
 
-function exportExcel(){
+async function exportKhachReport(wb){
+  const khachRep = buildKhachReportFull();
+  const wsK = wb.addWorksheet('02_KhachHang');
+  wsK.getCell(1,1).value = 'BÁO CÁO THEO KHÁCH HÀNG'; wsK.getCell(1,1).font = {bold:true, size:14};
+  wsK.getCell(2,1).value = 'Sản lượng, tuần/tháng, tỷ lệ Lạch Huyện, lấy vỏ SITC/ngoài SITC, G20/G40 và Top 5 Line.';
+  let row = 4;
+  row = appendTable(wsK, row, khachRep.mainHeaders, khachRep.mainData);
+  row = sectionTitle(wsK, row, 'TOP 5 LINE MỖI KHÁCH HÀNG', 4);
+  row = appendTable(wsK, row, khachRep.top5Headers, khachRep.top5Data);
+  row = sectionTitle(wsK, row, 'SẢN LƯỢNG KHÁCH HÀNG THEO TUẦN', khachRep.weekPivotHeaders.length);
+  row = appendTable(wsK, row, khachRep.weekPivotHeaders, khachRep.weekPivotData);
+  row = sectionTitle(wsK, row, 'SẢN LƯỢNG KHÁCH HÀNG THEO THÁNG', khachRep.monthPivotHeaders.length);
+  row = appendTable(wsK, row, khachRep.monthPivotHeaders, khachRep.monthPivotData);
+  return wsK;
+}
+
+async function exportTimeReport(wb){
+  const wsT = wb.addWorksheet('03_ThoiGian');
+  wsT.getCell(1,1).value = 'BÁO CÁO NGÀY / TUẦN / THÁNG'; wsT.getCell(1,1).font = {bold:true, size:14};
+  wsT.getCell(2,1).value = 'Sản lượng, so sánh kỳ trước, xu hướng, nơi hạ/lấy vỏ chủ yếu, khách lớn nhất, cơ cấu G20/G40.';
+  let row = 4;
+  row = sectionTitle(wsT, row, 'CHI TIẾT THEO NGÀY', 13);
+  const daily = buildPeriodDetail('d'); row = appendTable(wsT, row, daily.headers, daily.data);
+  row = sectionTitle(wsT, row, 'CHI TIẾT THEO TUẦN', 13);
+  const weekly = buildPeriodDetail('w'); row = appendTable(wsT, row, weekly.headers, weekly.data);
+  row = sectionTitle(wsT, row, 'CHI TIẾT THEO THÁNG', 13);
+  const monthly = buildPeriodDetail('m'); row = appendTable(wsT, row, monthly.headers, monthly.data);
+  return wsT;
+}
+
+async function doExportReport(){
+  if(!allRows.length){ notif('Chưa có dữ liệu để xuất', 'err'); return; }
+  const type = document.querySelector('input[name="report-type"]:checked').value;
+  const btn = document.getElementById('report-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Đang tạo báo cáo...';
+  try{
+    const wb = new ExcelJS.Workbook();
+    let ws, filename;
+    if(type==='line'){ ws = await exportLineReport(wb); filename = 'BaoCao_TheoLine'; }
+    else if(type==='khach'){ ws = await exportKhachReport(wb); filename = 'BaoCao_TheoKhachHang'; }
+    else { ws = await exportTimeReport(wb); filename = 'BaoCao_TheoThoiGian'; }
+
+    ws.views = [{state:'frozen', ySplit:1}];
+    setSheetFont(ws);
+
+    await downloadWorkbook(wb, `${filename}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    closeReportModal();
+    notif('✅ Đã xuất báo cáo');
+  }catch(err){
+    notif('Lỗi tạo báo cáo: '+err.message, 'err');
+    console.error(err);
+  }
+  btn.disabled = false; btn.innerHTML = '📊 Xuất báo cáo';
+}
+
+async function exportExcel(){
   if(!allRows.length) return;
-  const rows = [['Shipper','Line','ETD','Cutoff Time','Cutoff Date','Booking No.','Cntr','Seal','Seal Cus','Type','Empty Pickup','P.O.L','Vessel','CLP','Remark','CD','T/S Port','POD','D','W','M','Mức độ','Trạng thái']];
-  allRows.forEach(r=>{
-    rows.push([r.shipper,r.line,r.etd,r.cutoff_time,r.cutoff_date,r.booking_no,r.cntr_no,r.seal,r.seal_cus,r.cont_type,
-      r.empty_pickup,r.pol,r.vessel,r.clp,r.remark,r.cd,r.ts_port,r.pod,r.d_date,r.w_week,r.m_month,r._urgency,r._status]);
-  });
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = Array(23).fill({wch:14});
-  XLSX.utils.book_append_sheet(wb, ws, 'Plan');
-  XLSX.writeFile(wb, `PLAN_${new Date().toISOString().slice(0,10)}.xlsx`);
+  const headers = ['Shipper','Line','ETD','Cutoff Time','Cutoff Date','Booking No.','Cntr','Seal','Seal Cus','Type','Empty Pickup','P.O.L','Vessel','CLP','Remark','CD','T/S Port','POD','D','W','M','Mức độ','Trạng thái'];
+  const data = allRows.map(r => [r.shipper,r.line,r.etd,r.cutoff_time,r.cutoff_date,r.booking_no,r.cntr_no,r.seal,r.seal_cus,r.cont_type,
+    r.empty_pickup,r.pol,r.vessel,r.clp,r.remark,r.cd,r.ts_port,r.pod,r.d_date,r.w_week,r.m_month,r._urgency,r._status]);
+  const wb = new ExcelJS.Workbook();
+  buildStyledSheet(wb, 'Plan', headers, data);
+  await downloadWorkbook(wb, `PLAN_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 // Tự làm mới Mức độ mỗi phút (phụ thuộc giờ hiện tại) — không gọi lại Apps Script,
